@@ -66,7 +66,7 @@ tailwind.config = {
     </div>
   </div>
   <div class="flex items-center gap-4">
-    <a href="/" class="btn-secondary px-4 py-2 rounded font-data-label text-data-label uppercase tracking-widest hidden md:block">Intelligence</a>
+    <a href="/sandbox" class="btn-secondary px-4 py-2 rounded font-data-label text-data-label uppercase tracking-widest hidden md:block">Sandbox</a>
     <a href="/" class="btn-primary px-6 py-2 rounded font-data-label text-data-label uppercase tracking-widest font-bold">Run Demo</a>
   </div>
 </nav>
@@ -132,7 +132,7 @@ tailwind.config = {
   <section class="glass-panel rounded-xl p-6 amber-highlight-top">
     <h2 class="font-headline-md text-headline-md mb-3">What is live vs fallback</h2>
     <p><strong>Live Bright Data collectors:</strong> FCA (751 records), FINMA, BD Test Shop (<code>https://ecommerce-shop-brd.vercel.app</code> — public, BD can reach it).</p>
-    <p><strong>Fallback (pre-recorded):</strong> ESMA, BaFin, MAS. These have <code>active: 0</code> so Monitor never fires a stub collector. Rows are tagged <code>snapshot_id = fallback:synthetic</code>. MAS is BD-blocked.</p>
+    <p><strong>Fallback (pre-recorded):</strong> ESMA, BaFin, MAS (<code>active: 0</code>). FINMA also gets fallback rows/health if it has never been scraped, so the card is never empty. Rows are tagged <code>snapshot_id = fallback:synthetic</code>. MAS is BD-blocked.</p>
     <p><strong>Simulate Break</strong> swaps local <code>sandbox/index.html</code> (view at <a href="/sandbox">/sandbox</a>) so you can see the redesign. The following BD scan hits the <em>public</em> Test Shop URL — not localhost. Cloud scrapers cannot fetch your machine.</p>
   </section>
 

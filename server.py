@@ -307,7 +307,7 @@ def api_events():
 
 
 def _self_check() -> None:
-    """Verify all routes are registered and event bus works."""
+    """Verify all routes are registered, sandbox assets exist, and event bus works."""
     rules = {r.rule: r.methods for r in app.url_map.iter_rules()}
 
     expected = [
@@ -318,6 +318,9 @@ def _self_check() -> None:
     for path in expected:
         assert path in rules, f"route {path} not registered"
 
+    assert os.path.exists(_SANDBOX_BROKEN), "sandbox/broken-index.html missing — Simulate Break will 500"
+    assert os.path.exists(_SANDBOX_INDEX), "sandbox/index.html missing — /sandbox has nothing to serve"
+
     # event bus round-trip
     q = _subscribe()
     publish_event("test", {"v": 1})
@@ -325,7 +328,7 @@ def _self_check() -> None:
     assert json.loads(msg)["type"] == "test", "event bus broken"
     _unsubscribe(q)
 
-    print("SELF-CHECK PASSED: 11 routes registered, event bus works")
+    print("SELF-CHECK PASSED: 11 routes registered, sandbox assets present, event bus works")
 
 
 if __name__ == "__main__":

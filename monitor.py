@@ -395,8 +395,9 @@ def _self_check() -> None:
     orig_snapshot_dir = detector._SNAPSHOT_DIR
     detector._SNAPSHOT_DIR = test_snapshot_dir
 
-    # Patch memory's get_conn (it imported db.get_conn by name)
+    # Patch get_conn on both db and memory (memory imported the name, not the module).
     import memory as mem_mod
+    orig_db_get_conn = db.get_conn
     orig_mem_get_conn = mem_mod.get_conn
 
     import sqlite3
@@ -507,7 +508,7 @@ def _self_check() -> None:
     finally:
         # Restore everything
         db.DB_PATH = orig_db_path
-        db.get_conn = orig_mem_get_conn  # this was the original get_conn
+        db.get_conn = orig_db_get_conn
         detector._SNAPSHOT_DIR = orig_snapshot_dir
         mem_mod.get_conn = orig_mem_get_conn
         bd_client.trigger_scraper = orig_trigger

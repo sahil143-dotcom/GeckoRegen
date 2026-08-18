@@ -19,6 +19,8 @@
   var evtSource = null;
   var reconnectTimer = null;
   var pipelineTimer = null;
+  var pipelineIdleTimer = null;
+  var scanBusy = false;
   var PIPELINE_ORDER = ['monitor', 'detect', 'heal', 'validate', 'memory'];
   var PIPELINE_CAPTION = {
     monitor: 'monitor.py → bd_client.trigger_scraper / get_dataset',
@@ -32,6 +34,15 @@
   function setPipeline(stage) {
     var nodes = document.querySelectorAll('.pipeline-stage');
     var cap = document.getElementById('pipeline-caption');
+    if (stage !== 'idle' && pipelineIdleTimer) {
+      clearTimeout(pipelineIdleTimer);
+      pipelineIdleTimer = null;
+    }
+    if (stage === 'idle') {
+      nodes.forEach(function (el) { el.classList.remove('on', 'active'); });
+      if (cap) cap.textContent = PIPELINE_CAPTION.idle;
+      return;
+    }
     var idx = PIPELINE_ORDER.indexOf(stage);
     nodes.forEach(function (el) {
       var s = el.getAttribute('data-stage');
@@ -41,6 +52,14 @@
       if (s === stage) el.classList.add('active');
     });
     if (cap) cap.textContent = PIPELINE_CAPTION[stage] || PIPELINE_CAPTION.idle;
+  }
+
+  function schedulePipelineIdle() {
+    if (pipelineIdleTimer) clearTimeout(pipelineIdleTimer);
+    pipelineIdleTimer = setTimeout(function () {
+      pipelineIdleTimer = null;
+      setPipeline('idle');
+    }, 8000);
   }
 
   function playPipeline(result) {
@@ -60,7 +79,9 @@
       setPipeline(steps[i]);
       i += 1;
       if (i < steps.length) {
-        pipelineTimer = setTimeout(tick, 450);
+        pipelineTimer = setTimeout(tick, 250);
+      } else {
+        schedulePipelineIdle();
       }
     }
     tick();
@@ -120,6 +141,10 @@
     return String(s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  }
+
+  function cssToken(s) {
+    return String(s || '').replace(/[^a-zA-Z0-9_-]/g, '');
   }
 
   function statusClass(status) {
@@ -303,7 +328,7 @@
     }
     line.innerHTML =
       '<span class="event-time">' + ts + '</span>' +
-      '<span class="event-type ' + escapeHtml(type) + '">' + escapeHtml(type) + '</span>' +
+      '<span class="event-type ' + cssToken(type) + '">' + escapeHtml(type) + '</span>' +
       '<span class="event-data">' + escapeHtml(dataStr) + '</span>';
     $log.insertBefore(line, $log.firstChild);
     while ($log.children.length > 100) {
@@ -313,12 +338,13 @@
 
   // ── Health grid (bento) ───────────────────────────────
   function fetchHealth() {
-    fetch('/api/health')
+    return fetch('/api/health')
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!Array.isArray(data)) return;
         renderHealthGrid(data);
         updateSummary(data);
+        setScanReady();
       })
       .catch(function (e) {
         console.error('fetchHealth error:', e);
@@ -566,9 +592,28 @@
   }
 
   // ── Scan button ───────────────────────────────
+  function findTestShopId() {
+    var shop = null;
+    Object.keys(regulators).forEach(function (id) {
+      if (regulators[id].name === 'BD Test Shop') shop = Number(id);
+    });
+    return shop;
+  }
+
+  function setScanReady() {
+    if (!$scanBtn || scanBusy) return;
+    $scanBtn.disabled = findTestShopId() == null;
+  }
+
   function initScanButton() {
     if (!$scanBtn) return;
     $scanBtn.addEventListener('click', function () {
+      var shop = findTestShopId();
+      if (shop == null) {
+        alert('Health grid not loaded yet — wait a second, then try Simulate Break.');
+        return;
+      }
+      scanBusy = true;
       $scanBtn.disabled = true;
       var originalText = $scanBtn.innerHTML;
       $scanBtn.textContent = 'INDUCING';
@@ -583,28 +628,25 @@
           if (!res.ok) {
             console.error('Break failed:', res.d.error);
           }
-          var shop = null;
-          Object.keys(regulators).forEach(function (id) {
-            if (regulators[id].name === 'BD Test Shop') shop = Number(id);
-          });
-          var targetId = shop || Object.keys(regulators).map(Number).sort(function (a, b) { return a - b; })[0] || 1;
           $scanBtn.textContent = 'SCANNING';
           return fetch('/api/scan', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ regulator_id: targetId })
+            body: JSON.stringify({ regulator_id: shop })
           });
         })
         .then(function (r) {
           if (!r) return;
           if (r.ok) {
             setTimeout(function () {
-              $scanBtn.disabled = false;
+              scanBusy = false;
               $scanBtn.innerHTML = originalText;
+              setScanReady();
             }, 2000);
           } else {
-            $scanBtn.disabled = false;
+            scanBusy = false;
             $scanBtn.innerHTML = originalText;
+            setScanReady();
             return r.json().then(function (d) {
               console.error('Scan failed:', d.error || r.status);
               alert('Scan failed: ' + (d.error || r.status));
@@ -612,8 +654,9 @@
           }
         })
         .catch(function (e) {
-          $scanBtn.disabled = false;
+          scanBusy = false;
           $scanBtn.innerHTML = originalText;
+          setScanReady();
           console.error('Break/scan network error:', e);
           alert('Network error: ' + e);
         });

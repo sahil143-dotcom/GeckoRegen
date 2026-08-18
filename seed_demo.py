@@ -103,6 +103,14 @@ def _count_heals(reg_id: int) -> int:
         ).fetchone()["c"]
 
 
+def _count_health(reg_id: int) -> int:
+    with db.get_conn() as conn:
+        return conn.execute(
+            "SELECT COUNT(*) AS c FROM health_scores WHERE regulator_id = ?",
+            (reg_id,),
+        ).fetchone()["c"]
+
+
 def _expand(templates: list[dict], n: int = 36) -> list[dict]:
     """Repeat/vary templates across ~n weeks so the feed is not five rows."""
     out = []
@@ -146,6 +154,17 @@ def seed_if_needed() -> None:
             rid, "healthy",
             field_population_rate=0.94,
             record_count=len(rows),
+            missing_fields=[],
+        )
+
+    # FINMA is a live collector (active: 1). If a prior live scan never wrote
+    # health, the card would show "unknown" even when fallback rows exist.
+    finma = by_name.get("FINMA")
+    if finma and _count_health(finma["id"]) == 0:
+        db.update_health(
+            finma["id"], "healthy",
+            field_population_rate=0.94,
+            record_count=max(_count_changes(finma["id"]), 1),
             missing_fields=[],
         )
 
