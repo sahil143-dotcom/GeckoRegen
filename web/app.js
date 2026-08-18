@@ -1,15 +1,25 @@
 /* GeckoRegen — Dashboard SSE client + render logic.
    Vanilla JS. No frameworks. Connects to /api/events (SSE),
-   fetches /api/health, /api/changes, /api/heals on load. */
+   fetches /api/health, /api/changes, /api/heals on load.
+
+   Vengeance UI-inspired patterns:
+   - Morph text title (CSS opacity swap, no SVG)
+   - Bento grid staggered entry (setTimeout cascade)
+   - Activity feed slide-in (CSS animation)
+   - Healing timeline fade-in
+   - Event log terminal style
+*/
 
 (function () {
   'use strict';
 
   // ── State ──────────────────────────────────────────────────
-  var regulators = {};      // id -> {name, jurisdiction, status, ...}
-  var prevStatus = {};      // id -> previous status (for pulse animation)
+  var regulators = {};
+  var prevStatus = {};
   var evtSource = null;
   var reconnectTimer = null;
+  var morphIndex = 0;
+  var morphWords = [];
 
   // ── DOM refs ───────────────────────────────────────────────
   var $grid = document.getElementById('health-grid');
@@ -18,7 +28,6 @@
   var $log = document.getElementById('event-log');
   var $live = document.getElementById('live-indicator');
   var $scanBtn = document.getElementById('scan-btn');
-
   var $statTotal = document.getElementById('stat-total');
   var $statHealthy = document.getElementById('stat-healthy');
   var $statDegraded = document.getElementById('stat-degraded');
@@ -26,8 +35,29 @@
   var $statHeals = document.getElementById('stat-heals');
   var $statChanges = document.getElementById('stat-changes');
 
-  // ── Helpers ────────────────────────────────────────────────
+  // ── Morph text title ───────────────────────────────────
+  function initMorphTitle() {
+    var $title = document.getElementById('morph-title');
+    if (!$title) return;
+    morphWords = Array.prototype.slice.call($title.querySelectorAll('.morph-word'));
+    if (morphWords.length === 0) return;
+    // Show first word immediately
+    morphWords[0].classList.remove('out');
+    morphIndex = 0;
+    // Cycle every 3s
+    setInterval(function () {
+      var current = morphWords[morphIndex];
+      var nextIdx = (morphIndex + 1) % morphWords.length;
+      var next = morphWords[nextIdx];
+      if (!current || !next) return;
+      // Fade out current, fade in next
+      current.classList.add('out');
+      next.classList.remove('out');
+      morphIndex = nextIdx;
+    }, 3000);
+  }
 
+  // ── Helpers ────────────────────────────────────────────────
   function fmtPct(v) {
     if (v == null) return '—';
     return (v * 100).toFixed(0) + '%';
@@ -35,7 +65,6 @@
 
   function fmtTime(ts) {
     if (!ts) return '';
-    // keep it short: HH:MM:SS from the timestamp string
     var parts = String(ts).split(' ');
     if (parts.length >= 2) return parts[1].slice(0, 8);
     return String(ts).slice(11, 19) || ts;
@@ -63,7 +92,6 @@
   }
 
   // ── SSE connection ─────────────────────────────────────────
-
   function connectSSE() {
     if (evtSource) {
       try { evtSource.close(); } catch (e) {}
@@ -119,15 +147,11 @@
   }
 
   // ── Event handler ──────────────────────────────────────────
-
   function handleEvent(type, data) {
     logEvent(type, data);
-
     if (!data) data = {};
-
     switch (type) {
       case 'scan_started':
-        // mark card as healing if we know the regulator
         if (data.regulator_id != null) {
           updateCardStatus(data.regulator_id, 'healing');
         }
@@ -142,7 +166,6 @@
             record_count: res.record_count,
             healed: res.healed
           });
-          // refresh feeds since scan may have produced changes/heals
           fetchChanges();
           fetchHeals();
         }
@@ -174,7 +197,7 @@
           updateCardStatus(data.regulator_id, data.status || 'healthy');
         }
         fetchHeals();
-        fetchHealth(); // full refresh to get latest stats
+        fetchHealth();
         break;
 
       case 'new_change':
@@ -187,15 +210,12 @@
   }
 
   // ── Event log ──────────────────────────────────────────────
-
   function logEvent(type, data) {
     if (!$log) return;
     var now = new Date();
     var ts = now.toTimeString().slice(0, 8);
-
     var line = document.createElement('div');
     line.className = 'event-line';
-
     var dataStr = '';
     if (data) {
       try {
@@ -203,22 +223,17 @@
         if (JSON.stringify(data).length > 200) dataStr += '…';
       } catch (e) {}
     }
-
     line.innerHTML =
       '<span class="event-time">' + ts + '</span>' +
       '<span class="event-type ' + escapeHtml(type) + '">' + escapeHtml(type) + '</span>' +
       '<span class="event-data">' + escapeHtml(dataStr) + '</span>';
-
     $log.insertBefore(line, $log.firstChild);
-
-    // cap at 100 lines
     while ($log.children.length > 100) {
       $log.removeChild($log.lastChild);
     }
   }
 
-  // ── Health grid ────────────────────────────────────────────
-
+  // ── Health grid (bento) ───────────────────────────────
   function fetchHealth() {
     fetch('/api/health')
       .then(function (r) { return r.json(); })
@@ -238,23 +253,18 @@
       $grid.innerHTML = '<div class="empty-state">No regulators loaded. Trigger a scan or wait for monitor.</div>';
       return;
     }
-
-    // Build/update cards
     var html = '';
-    data.forEach(function (reg) {
+    data.forEach(function (reg, idx) {
       var rid = reg.regulator_id;
       var latest = reg.latest || {};
       var status = latest.status || 'unknown';
       var prev = prevStatus[rid];
       var pulseClass = '';
-
-      // Determine pulse animation
       if (prev && prev !== status) {
         if (status === 'broken') pulseClass = ' pulse-broken';
         else if (status === 'healthy' && (prev === 'broken' || prev === 'degraded' || prev === 'healing'))
           pulseClass = ' pulse-healed';
       }
-
       regulators[rid] = {
         name: reg.regulator_name,
         jurisdiction: reg.jurisdiction,
@@ -262,16 +272,16 @@
         latest: latest
       };
       prevStatus[rid] = status;
-
       var cls = statusClass(status);
       var popRate = latest.field_population_rate;
       var recCount = latest.record_count;
       var missing = latest.missing_fields;
       var missingStr = (Array.isArray(missing) && missing.length) ? missing.join(', ') : 'none';
       var lastScan = latest.timestamp || reg.last_scanned_at;
-
+      // Staggered entry: each card delayed by 80ms * index
+      var delay = (idx * 80) + 'ms';
       html +=
-        '<div class="reg-card ' + cls + pulseClass + '" data-rid="' + rid + '">' +
+        '<div class="reg-card ' + cls + pulseClass + '" data-rid="' + rid + '" style="animation-delay:' + delay + '">' +
           '<div class="reg-header">' +
             '<span class="reg-name">' + escapeHtml(reg.regulator_name) + '</span>' +
             (reg.jurisdiction ? '<span class="reg-juris">' + escapeHtml(reg.jurisdiction) + '</span>' : '') +
@@ -288,40 +298,29 @@
           '</div>' +
         '</div>';
     });
-
     $grid.innerHTML = html;
   }
 
   function updateCardStatus(rid, status, extra) {
     var card = $grid && $grid.querySelector('.reg-card[data-rid="' + rid + '"]');
     if (!card) {
-      // card doesn't exist yet — do a full refresh
       fetchHealth();
       return;
     }
-
     var prev = prevStatus[rid] || regulators[rid] && regulators[rid].status;
     var cls = statusClass(status);
     var pulseClass = '';
-
     if (prev && prev !== status) {
       if (status === 'broken') pulseClass = ' pulse-broken';
       else if (status === 'healthy' && (prev === 'broken' || prev === 'degraded' || prev === 'healing'))
         pulseClass = ' pulse-healed';
     }
-
-    // Remove old status classes and pulse classes
     card.classList.remove('healthy', 'degraded', 'broken', 'healing', 'pulse-broken', 'pulse-healed');
-    // Force reflow to restart animation
     if (pulseClass) void card.offsetWidth;
     card.classList.add(cls);
     if (pulseClass) card.classList.add(pulseClass.trim());
-
-    // Update status text
     var stText = card.querySelector('.status-text');
     if (stText) stText.textContent = statusLabel(status);
-
-    // Update meta if extra data provided
     if (extra) {
       var meta = card.querySelector('.reg-meta');
       if (meta && extra.field_population_rate != null) {
@@ -333,16 +332,12 @@
         if (recSpan) recSpan.textContent = extra.record_count;
       }
     }
-
     prevStatus[rid] = status;
     if (regulators[rid]) regulators[rid].status = status;
-
-    // Update summary counts
     refreshSummaryFromCards();
   }
 
   // ── Summary strip ──────────────────────────────────────────
-
   function updateSummary(healthData) {
     if (!healthData || !Array.isArray(healthData)) return;
     var total = healthData.length;
@@ -375,8 +370,7 @@
     if ($statBroken) $statBroken.textContent = broken;
   }
 
-  // ── Change feed ────────────────────────────────────────────
-
+  // ── Change feed (activity feed) ───────────────────────────────
   function fetchChanges() {
     fetch('/api/changes?limit=30')
       .then(function (r) { return r.json(); })
@@ -396,18 +390,18 @@
       $feed.innerHTML = '<div class="empty-state">No changes detected yet.</div>';
       return;
     }
-
     var html = '';
-    changes.forEach(function (ch) {
+    changes.forEach(function (ch, idx) {
       var sev = ch.severity || 'info';
       var sevClass = 'badge-' + sev;
       var regName = regulators[ch.regulator_id]
         ? regulators[ch.regulator_id].name
         : ('#' + ch.regulator_id);
       var isNew = ch.is_new === 1 || ch.is_new === true;
-
+      // Staggered slide-in
+      var delay = (idx * 60) + 'ms';
       html +=
-        '<div class="change-item">' +
+        '<div class="change-item" style="animation-delay:' + delay + '">' +
           '<div class="change-top">' +
             '<span class="change-reg">' + escapeHtml(regName) + '</span>' +
             (isNew ? '<span class="badge badge-new">NEW</span>' : '') +
@@ -422,12 +416,10 @@
           '</div>' +
         '</div>';
     });
-
     $feed.innerHTML = html;
   }
 
-  // ── Healing timeline ───────────────────────────────────────
-
+  // ── Healing timeline ───────────────────────────────
   function fetchHeals() {
     fetch('/api/heals?limit=30')
       .then(function (r) { return r.json(); })
@@ -447,9 +439,8 @@
       $heals.innerHTML = '<div class="empty-state">No healing events yet.</div>';
       return;
     }
-
     var html = '';
-    heals.forEach(function (h) {
+    heals.forEach(function (h, idx) {
       var status = h.status || 'pending';
       var dotClass = 'pending';
       var symbol = '⋯';
@@ -460,23 +451,20 @@
         dotClass = 'failed';
         symbol = '✗';
       }
-
       var regName = regulators[h.regulator_id]
         ? regulators[h.regulator_id].name
         : ('#' + h.regulator_id);
-
       var brokenFields = h.broken_fields;
       var fieldsStr = '';
       if (Array.isArray(brokenFields)) fieldsStr = brokenFields.join(', ');
       else if (typeof brokenFields === 'string') {
         try { fieldsStr = JSON.parse(brokenFields).join(', '); } catch (e) { fieldsStr = brokenFields; }
       }
-
       var durationStr = h.duration_seconds != null ? h.duration_seconds + 's' : '';
       var attemptsStr = h.attempts != null ? h.attempts + ' attempt' + (h.attempts > 1 ? 's' : '') : '';
-
+      var delay = (idx * 50) + 'ms';
       html +=
-        '<div class="heal-item">' +
+        '<div class="heal-item" style="animation-delay:' + delay + '">' +
           '<div class="heal-dot ' + dotClass + '">' + symbol + '</div>' +
           '<div class="heal-body">' +
             '<div class="heal-reg">' + escapeHtml(regName) + ' — ' + escapeHtml(status) + '</div>' +
@@ -489,24 +477,18 @@
           '</div>' +
         '</div>';
     });
-
     $heals.innerHTML = html;
   }
 
-  // ── Scan button ────────────────────────────────────────────
-
+  // ── Scan button ───────────────────────────────
   function initScanButton() {
     if (!$scanBtn) return;
-
     $scanBtn.addEventListener('click', function () {
       $scanBtn.disabled = true;
       var originalText = $scanBtn.innerHTML;
       $scanBtn.innerHTML = '<span class="btn-icon">⟳</span> Scanning…';
-
-      // Find first regulator id, or default to 1
       var regIds = Object.keys(regulators).map(Number).sort(function(a,b){return a-b;});
       var targetId = regIds.length ? regIds[0] : 1;
-
       fetch('/api/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -514,7 +496,6 @@
       })
         .then(function (r) {
           if (r.ok) {
-            // SSE events will drive the UI updates; just re-enable the button
             setTimeout(function () {
               $scanBtn.disabled = false;
               $scanBtn.innerHTML = originalText;
@@ -538,20 +519,13 @@
   }
 
   // ── Init ───────────────────────────────────────────────────
-
   function init() {
-    // Fetch all data on load
     fetchHealth();
     fetchChanges();
     fetchHeals();
-
-    // Connect SSE
     connectSSE();
-
-    // Wire up scan button
+    initMorphTitle();
     initScanButton();
-
-    // Periodic refresh as fallback (every 30s) in case SSE drops
     setInterval(function () {
       fetchHealth();
       fetchChanges();

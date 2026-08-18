@@ -36,7 +36,7 @@ def trigger_scraper(collector_id, urls, queue_next=1):
 
 def get_dataset(snapshot_id):
     """GET /dca/dataset — download results. Polls until ready."""
-    for _ in range(120):  # ponytail: 120 x 5s = 10min max, bump if slow
+    for _ in range(180):  # 180 x 5s = 15min — BD crawls can take 3–12 min
         r = requests.get(
             f"{BASE}/dca/dataset",
             params={"id": snapshot_id},

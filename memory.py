@@ -69,6 +69,22 @@ def record_change(reg_id: int, change_data: Dict[str, Any]) -> int:
 
     Returns the new change.id.
     """
+    title = change_data.get("title")
+    category = change_data.get("category")
+    publish_date = change_data.get("publish_date")
+    summary = change_data.get("summary")
+    article_url = change_data.get("article_url")
+    if isinstance(title, (dict, list)):
+        title = json.dumps(title)
+    if isinstance(category, (dict, list)):
+        category = json.dumps(category)
+    if isinstance(publish_date, (dict, list)):
+        publish_date = json.dumps(publish_date)
+    if isinstance(summary, (dict, list)):
+        summary = json.dumps(summary)
+    if isinstance(article_url, (dict, list)):
+        article_url = json.dumps(article_url)
+
     with get_conn() as conn:
         cur = conn.execute(
             """INSERT INTO changes
@@ -78,11 +94,11 @@ def record_change(reg_id: int, change_data: Dict[str, Any]) -> int:
             (
                 reg_id,
                 _now(),
-                change_data.get("title"),
-                change_data.get("category"),
-                change_data.get("publish_date"),
-                change_data.get("summary"),
-                change_data.get("article_url"),
+                title,
+                category,
+                publish_date,
+                summary,
+                article_url,
                 change_data.get("severity", "info"),
                 1 if change_data.get("is_new", True) else 0,
                 change_data.get("snapshot_id"),

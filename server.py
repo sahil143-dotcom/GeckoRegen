@@ -149,7 +149,7 @@ def api_scan():
     def _run_scan():
         try:
             publish_event("scan_started", {"regulator_id": reg_id, "name": reg["name"]})
-            result = monitor.monitor_regulator(reg_id)
+            result = monitor.monitor_regulator(reg)
             publish_event("scan_completed", {
                 "regulator_id": reg_id,
                 "name": reg["name"],

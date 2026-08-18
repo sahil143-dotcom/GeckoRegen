@@ -1,28 +1,43 @@
 {
-  "scrapers": {
-    "c_msy0akxmifb8wz741": {
-      "name": "BD Test E-commerce Shop",
-      "url": "https://ecommerce-shop-brd.vercel.app",
-      "domain": "ecommerce-shop-brd.vercel.app",
-      "status": "active",
-      "fields": ["product_name", "price", "image_url", "availability", "product_page_url", "timestamp"],
-      "notes": "Working scraper. price and timestamp fields return MISSING - good test case for self-healing."
-    },
-    "c_msxzz6g91mhqhs3i51": {
-      "name": "ESMA News (pending)",
-      "url": "https://www.esma.europa.eu/news-events/news",
-      "domain": "esma.europa.eu",
-      "status": "generating",
-      "notes": "AI generation in progress. May need manual activation in BD dashboard."
-    },
-    "c_msxzzg1a2mcicdzpow": {
-      "name": "FCA News (pending)",
+  "scrapers": [
+    {
+      "name": "FCA",
+      "full_name": "Financial Conduct Authority",
+      "jurisdiction": "UK",
       "url": "https://www.fca.org.uk/news/news-stories",
       "domain": "fca.org.uk",
-      "status": "generating",
-      "notes": "AI generation in progress. May need manual activation in BD dashboard."
+      "collector_id": "c_msxzzg1a2mcicdzpow",
+      "status": "active",
+      "active": 1,
+      "record_count": 751,
+      "fields": ["title", "category", "publish_date", "tags", "summary", "article_url"],
+      "notes": "Verified scraper. 751 records."
+    },
+    {
+      "name": "FINMA",
+      "full_name": "Swiss Financial Market Supervisory Authority",
+      "jurisdiction": "Switzerland",
+      "url": "https://www.finma.ch/en/news/",
+      "domain": "finma.ch",
+      "collector_id": "c_msypcww11fgiu7v0q8",
+      "status": "active",
+      "active": 1,
+      "fields": ["title", "date", "category", "summary", "product_page_url"],
+      "notes": "Verified scraper."
+    },
+    {
+      "name": "BD Test Shop",
+      "full_name": "Bright Data Test E-commerce Shop",
+      "jurisdiction": "TEST",
+      "url": "https://ecommerce-shop-brd.vercel.app",
+      "domain": "ecommerce-shop-brd.vercel.app",
+      "collector_id": "c_msy0akxmifb8wz741",
+      "status": "active",
+      "active": 1,
+      "fields": ["product_name", "price", "image_url", "availability", "product_page_url"],
+      "notes": "Verified test scraper for live break demo. price/timestamp may return MISSING — useful self-heal case."
     }
-  },
-  "blocked_domains": ["sec.gov", "cftc.gov"],
-  "notes": "Government domains may be blocked by BD. EU/UK regulators seem to work. Check BD dashboard for ESMA/FCA generation status."
+  ],
+  "blocked_domains": ["sec.gov", "cftc.gov", "mas.gov.sg", "asic.gov.au"],
+  "notes": "BD blocks government domains: sec.gov, cftc.gov, mas.gov.sg, asic.gov.au. Verified working scrapers: FCA (UK, fca.org.uk, 751 records), FINMA (Switzerland, finma.ch), BD Test Shop (ecommerce-shop-brd.vercel.app)."
 }

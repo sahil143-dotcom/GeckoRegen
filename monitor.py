@@ -32,6 +32,33 @@ DEFAULT_SCHEMA: dict[str, dict[str, Any]] = {
     "summary":      {"type": str, "required": False, "regex": r"\S+"},
 }
 
+# Per-regulator schemas from scrapers_config.json field lists.
+# Test Shop price is optional — BD notes it as often MISSING (self-heal case).
+SCHEMA_BY_NAME: dict[str, dict[str, dict[str, Any]]] = {
+    "FCA": DEFAULT_SCHEMA,
+    "FINMA": {
+        "title":            {"type": str, "required": True,  "regex": r"\S+"},
+        "date":             {"type": str, "required": True,  "regex": r"\S+"},
+        "category":         {"type": str, "required": False},
+        "summary":          {"type": str, "required": False, "regex": r"\S+"},
+        "product_page_url": {"type": str, "required": True,  "regex": r"https?://"},
+    },
+    "BD Test Shop": {
+        "product_name":     {"type": str, "required": True,  "regex": r"\S+"},
+        "price":            {"type": str, "required": False},
+        "image_url":        {"type": str, "required": False, "regex": r"https?://"},
+        "availability":     {"type": str, "required": False},
+        "product_page_url": {"type": str, "required": True,  "regex": r"https?://"},
+    },
+}
+
+
+def _schema_for(regulator: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Prefer an explicit schema on the regulator, else name-based, else default."""
+    if regulator.get("expected_schema"):
+        return regulator["expected_schema"]
+    return SCHEMA_BY_NAME.get(regulator.get("name", ""), DEFAULT_SCHEMA)
+
 
 # ── 1. run_scraper ────────────────────────────────────────────────────
 
@@ -102,6 +129,27 @@ def check_health(records: list[dict[str, Any]], expected_schema: dict[str, Any])
     }
 
 
+def _as_text(value: Any) -> str | None:
+    """Coerce scraper values to a SQLite-safe string (price may be a dict)."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return value
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, dict):
+        for k in ("amount", "value", "text", "url", "name", "price"):
+            if value.get(k) not in (None, ""):
+                return _as_text(value[k])
+        return json.dumps(value)
+    if isinstance(value, list):
+        parts = [_as_text(x) for x in value]
+        return ", ".join(p for p in parts if p)
+    return str(value)
+
+
 # ── 3. monitor_regulator ──────────────────────────────────────────────
 
 def monitor_regulator(regulator: dict[str, Any]) -> dict[str, Any]:
@@ -112,7 +160,7 @@ def monitor_regulator(regulator: dict[str, Any]) -> dict[str, Any]:
     Returns a result dict summarising the run.
     """
     reg_id = regulator["id"]
-    schema = regulator.get("expected_schema", DEFAULT_SCHEMA)
+    schema = _schema_for(regulator)
 
     # 1. Run scraper
     try:
@@ -140,11 +188,11 @@ def monitor_regulator(regulator: dict[str, Any]) -> dict[str, Any]:
     # 4. Record changes (each record as a potential change entry)
     for rec in records:
         memory.record_change(reg_id, {
-            "title": rec.get("title"),
-            "category": rec.get("category"),
-            "publish_date": rec.get("publish_date"),
-            "summary": rec.get("summary"),
-            "article_url": rec.get("article_url"),
+            "title": _as_text(rec.get("title") or rec.get("product_name")),
+            "category": _as_text(rec.get("category") or rec.get("availability")),
+            "publish_date": _as_text(rec.get("publish_date") or rec.get("date")),
+            "summary": _as_text(rec.get("summary") or rec.get("price")),
+            "article_url": _as_text(rec.get("article_url") or rec.get("product_page_url")),
             "severity": health["severity"],
             "snapshot_id": snapshot_path,
         })
@@ -160,13 +208,21 @@ def monitor_regulator(regulator: dict[str, Any]) -> dict[str, Any]:
             last_good = records[0] if records else {}
 
         broken_field_names = [b["field"] for b in health["broken_fields"]]
+        # healer.validate_heal expects {field: "str"|"int"|...}, not detector specs
+        heal_schema = {
+            field: ("str" if spec.get("type") is str else
+                    "int" if spec.get("type") is int else
+                    "float" if spec.get("type") is float else
+                    "bool" if spec.get("type") is bool else None)
+            for field, spec in schema.items()
+        }
         heal_result = healer.heal_pipeline(
             regulator["collector_id"],
             regulator["name"],
             broken_field_names,
             last_good,
             regulator["url"],
-            schema,
+            heal_schema,
         )
 
         # Record the heal event
@@ -253,10 +309,29 @@ def init_from_config(config_path: str = CONFIG_PATH) -> list[int]:
     with open(config_path, "r", encoding="utf-8") as fh:
         config = json.load(fh)
 
+    # Config may be a list of scrapers, or an object with a "scrapers" key
+    # (plus blocked_domains / notes). Dict-keyed-by-collector-id is also accepted.
+    if isinstance(config, dict):
+        raw = config.get("scrapers", config)
+    else:
+        raw = config
+
+    if isinstance(raw, dict):
+        entries = []
+        for collector_id, meta in raw.items():
+            if not isinstance(meta, dict):
+                continue
+            entry = dict(meta)
+            entry.setdefault("collector_id", collector_id)
+            entries.append(entry)
+    else:
+        entries = list(raw)
+
+    db.init_db()
     existing = {r["name"]: r for r in db.get_regulators()}
     ids: list[int] = []
 
-    for entry in config:
+    for entry in entries:
         name = entry["name"]
         if name in existing:
             ids.append(existing[name]["id"])
