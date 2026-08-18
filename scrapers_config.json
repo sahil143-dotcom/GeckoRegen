@@ -11,7 +11,7 @@
       "active": 1,
       "record_count": 751,
       "fields": ["title", "category", "publish_date", "tags", "summary", "article_url"],
-      "notes": "Verified scraper. 751 records."
+      "notes": "Verified live scraper. 751 records."
     },
     {
       "name": "FINMA",
@@ -23,7 +23,7 @@
       "status": "active",
       "active": 1,
       "fields": ["title", "date", "category", "summary", "product_page_url"],
-      "notes": "Verified scraper."
+      "notes": "Verified live scraper."
     },
     {
       "name": "BD Test Shop",
@@ -35,9 +35,45 @@
       "status": "active",
       "active": 1,
       "fields": ["product_name", "price", "image_url", "availability", "product_page_url"],
-      "notes": "Verified test scraper for live break demo. price/timestamp may return MISSING — useful self-heal case."
+      "notes": "Public BD URL for live scrape/heal demo."
+    },
+    {
+      "name": "ESMA",
+      "full_name": "European Securities and Markets Authority",
+      "jurisdiction": "EU",
+      "url": "https://www.esma.europa.eu/news-events/news",
+      "domain": "esma.europa.eu",
+      "collector_id": null,
+      "status": "fallback",
+      "active": 0,
+      "fields": ["title", "category", "publish_date", "summary", "article_url"],
+      "notes": "No live collector yet. Dashboard uses pre-recorded fallback rows. Monitor skips (active=0)."
+    },
+    {
+      "name": "BaFin",
+      "full_name": "Federal Financial Supervisory Authority",
+      "jurisdiction": "DE",
+      "url": "https://www.bafin.de/EN/PublikationenDaten/publikationen_node.html",
+      "domain": "bafin.de",
+      "collector_id": null,
+      "status": "fallback",
+      "active": 0,
+      "fields": ["title", "category", "publish_date", "summary", "article_url"],
+      "notes": "No live collector yet. Pre-recorded fallback. Monitor skips (active=0)."
+    },
+    {
+      "name": "MAS",
+      "full_name": "Monetary Authority of Singapore",
+      "jurisdiction": "SG",
+      "url": "https://www.mas.gov.sg/news",
+      "domain": "mas.gov.sg",
+      "collector_id": null,
+      "status": "fallback",
+      "active": 0,
+      "fields": ["title", "category", "publish_date", "summary", "article_url"],
+      "notes": "mas.gov.sg is BD-blocked. Pre-recorded fallback only. Monitor skips (active=0)."
     }
   ],
   "blocked_domains": ["sec.gov", "cftc.gov", "mas.gov.sg", "asic.gov.au"],
-  "notes": "BD blocks government domains: sec.gov, cftc.gov, mas.gov.sg, asic.gov.au. Verified working scrapers: FCA (UK, fca.org.uk, 751 records), FINMA (Switzerland, finma.ch), BD Test Shop (ecommerce-shop-brd.vercel.app)."
+  "notes": "Live BD collectors: FCA, FINMA, BD Test Shop. ESMA/BaFin/MAS are inactive stubs with fallback rows so the dashboard is not empty. Monitor and adapter skip active=0."
 }

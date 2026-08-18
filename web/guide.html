@@ -79,7 +79,14 @@ tailwind.config = {
       <span class="font-data-label text-data-label text-primary-container uppercase tracking-widest">Judge Guide</span>
     </div>
     <h1>GeckoRegen</h1>
-    <p>A self-healing regulatory intelligence monitor. It scrapes regulator websites via Bright Data Scraper Studio, detects when scrapers break, auto-heals them via the Self-Healing API, independently validates the repair, and builds persistent organizational memory.</p>
+    <p>GeckoRegen is the validation gate that makes Bright Data production-safe. BD’s Self-Healing API returns a new scraper — it does not verify that the new scraper actually works. We re-run and schema-check before accepting.</p>
+  </section>
+
+  <section class="glass-panel rounded-xl p-6 amber-highlight-top">
+    <h2 class="font-headline-md text-headline-md mb-3">What is live vs fallback</h2>
+    <p><strong>Live Bright Data collectors:</strong> FCA (751 records), FINMA, BD Test Shop (<code>https://ecommerce-shop-brd.vercel.app</code> — public, BD can reach it).</p>
+    <p><strong>Fallback (pre-recorded):</strong> ESMA, BaFin, MAS. These have <code>active: 0</code> so Monitor never fires a stub collector. Rows are tagged <code>snapshot_id = fallback:synthetic</code>. MAS is BD-blocked.</p>
+    <p><strong>Simulate Break</strong> swaps local <code>sandbox/index.html</code> (view at <a href="/sandbox">/sandbox</a>) so you can see the redesign. The following BD scan hits the <em>public</em> Test Shop URL — not localhost. Cloud scrapers cannot fetch your machine.</p>
   </section>
 
   <section class="glass-panel rounded-xl p-6 amber-highlight-top">
@@ -113,7 +120,7 @@ tailwind.config = {
     </div>
     <div class="glass-panel rounded-lg data-row guide-step accent-strip-charcoal">
       <span class="guide-step-num">2</span>
-      <div class="guide-step-body"><strong>Click Simulate Break</strong> — triggers a live scan (demo path for a site redesign).</div>
+      <div class="guide-step-body"><strong>Click Simulate Break</strong> — POST /api/break swaps sandbox HTML (preview <a href="/sandbox">/sandbox</a>), then scans BD Test Shop on its public URL.</div>
     </div>
     <div class="glass-panel rounded-lg data-row guide-step accent-strip-charcoal">
       <span class="guide-step-num">3</span>
@@ -139,6 +146,18 @@ tailwind.config = {
       <span class="guide-step-num">8</span>
       <div class="guide-step-body"><strong>Self-Healing Timeline</strong> — success or failure, duration, attempt count.</div>
     </div>
+  </section>
+
+  <section class="glass-panel rounded-xl p-6">
+    <h2 class="font-headline-md text-headline-md mb-3">Impact correlation (implemented)</h2>
+    <p>Memory does not embed documents. It scores historical changes with SequenceMatcher on title (50%), category (30%), and summary (20%). Exposed as <code>GET /api/similar?title=...&amp;category=...</code>.</p>
+    <p><strong>Worked example from this dataset:</strong> ESMA fallback row <em>“Guidelines on crypto-asset service providers and data retention”</em> (category: guidance) is the same family as FCA live items on crypto guidance and data-retention themes. The API returns the nearest titles with a similarity score and a note (<em>same category, similar title</em>).</p>
+    <p>That is the GDPR-style claim, scoped to what the code actually does: “this looks like a guidance/retention change you have already seen,” not a legal opinion engine.</p>
+  </section>
+
+  <section class="glass-panel rounded-xl p-6">
+    <h2 class="font-headline-md text-headline-md mb-3">Pre-recorded heal (FCA)</h2>
+    <p>If credits or time block a live heal, the timeline can show a prior FCA run: field <code>summary</code> null → contextual prompt → validation population 94.11% on 751 records → accepted in 1 attempt, 47s. Marked in validation_details as <code>pre-recorded prior BD heal run</code>.</p>
   </section>
 
   <section class="glass-panel rounded-xl p-6">

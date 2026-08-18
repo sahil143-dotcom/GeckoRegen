@@ -80,6 +80,8 @@ cp .env.example .env
 ```bash
 # Initialize database
 python db.py
+python seed_demo.py   # fallback rows for ESMA/BaFin/MAS/FINMA if empty
+python server.py
 
 # Start the dashboard
 python server.py
@@ -94,14 +96,14 @@ Visit `/guide` in the dashboard for a step-by-step walkthrough.
 
 ### Quick demo flow
 
-1. **Dashboard loads** — health grid shows all regulators green
-2. **Click "Simulate Break"** — modifies the sandbox regulator site's HTML structure
-3. **Scraper breaks** — health grid turns red, broken field identified
-4. **GeckoRegen detects** — snapshot diff shows the exact failure
-5. **GeckoRegen heals** — contextual prompt sent to BD Self-Healing API
-6. **GeckoRegen validates** — re-runs scraper, checks output against schema
-7. **Monitoring resumes** — health grid turns green, data flows again
-8. **Memory updated** — "Site redesign detected, healed in 1 attempt"
+1. **Dashboard loads** — live FCA/FINMA/Test Shop plus fallback ESMA/BaFin/MAS (tagged `fallback:synthetic`, not live scrapes)
+2. **Click "Simulate Break"** — `POST /api/break` swaps `sandbox/index.html` (preview `/sandbox`), then scans **BD Test Shop** at its public URL
+3. **Local redesign is visible at `/sandbox`**. Bright Data cannot scrape localhost — the live BD hop is the Test Shop URL
+4. **Detector** diffs JSON vs last-known-good; health grid pulses red/amber
+5. **If fields break**, Healer sends a contextual prompt to BD Self-Healing API
+6. **Validator** re-runs and checks population ≥ 90% before accepting
+7. **If credits run out**, the timeline shows a pre-recorded FCA heal (labelled as such)
+8. **Memory** `GET /api/similar` surfaces similar historical changes
 
 ---
 
@@ -156,11 +158,12 @@ GeckoRegen/
 
 | Regulator | Jurisdiction | Status |
 |---|---|---|
-| FCA (UK) | UK | ✅ Active — 751 records |
-| ESMA (EU) | EU | ⏳ Generating |
-| BaFin (Germany) | DE | ⏳ Generating |
-| MAS (Singapore) | SG | ⏳ Generating |
-| FINMA (Switzerland) | CH | ⏳ Generating |
+| FCA (UK) | UK | Live BD collector — 751 records |
+| FINMA | CH | Live BD collector |
+| BD Test Shop | TEST | Live BD collector — public URL for heal demo |
+| ESMA (EU) | EU | Fallback rows only (`active: 0`) |
+| BaFin (Germany) | DE | Fallback rows only (`active: 0`) |
+| MAS (Singapore) | SG | Fallback only — `mas.gov.sg` is BD-blocked |
 
 ---
 

@@ -334,7 +334,17 @@ def init_from_config(config_path: str = CONFIG_PATH) -> list[int]:
     for entry in entries:
         name = entry["name"]
         if name in existing:
-            ids.append(existing[name]["id"])
+            rid = existing[name]["id"]
+            with db.get_conn() as conn:
+                conn.execute(
+                    """UPDATE regulators SET url = ?, full_name = ?,
+                       jurisdiction = ?, collector_id = ?, active = ?
+                       WHERE id = ?""",
+                    (entry["url"], entry.get("full_name"),
+                     entry.get("jurisdiction"), entry.get("collector_id"),
+                     entry.get("active", 1), rid),
+                )
+            ids.append(rid)
             continue
 
         rid = db.insert_regulator(

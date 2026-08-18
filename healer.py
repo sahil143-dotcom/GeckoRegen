@@ -156,6 +156,7 @@ def heal_pipeline(
     Sharper prompts on each retry.  Returns dict with success/failure + details.
     """
     base_prompt = generate_heal_prompt(regulator_name, broken_fields, last_known_good)
+    validation = None
 
     for attempt in range(1, max_attempts + 1):
         # progressively sharper prompts
@@ -200,7 +201,7 @@ def heal_pipeline(
         "success": False,
         "attempts": max_attempts,
         "reason": "max attempts reached — manual intervention required",
-        "last_validation": validation if "validation" in dir() else None,
+        "last_validation": validation,
     }
 
 

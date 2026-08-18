@@ -514,15 +514,32 @@
     $scanBtn.addEventListener('click', function () {
       $scanBtn.disabled = true;
       var originalText = $scanBtn.innerHTML;
-      $scanBtn.textContent = 'SCANNING';
-      var regIds = Object.keys(regulators).map(Number).sort(function(a,b){return a-b;});
-      var targetId = regIds.length ? regIds[0] : 1;
-      fetch('/api/scan', {
+      $scanBtn.textContent = 'INDUCING';
+
+      fetch('/api/break', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ regulator_id: targetId })
+        body: JSON.stringify({ broken: true })
       })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          if (!res.ok) {
+            console.error('Break failed:', res.d.error);
+          }
+          var shop = null;
+          Object.keys(regulators).forEach(function (id) {
+            if (regulators[id].name === 'BD Test Shop') shop = Number(id);
+          });
+          var targetId = shop || Object.keys(regulators).map(Number).sort(function (a, b) { return a - b; })[0] || 1;
+          $scanBtn.textContent = 'SCANNING';
+          return fetch('/api/scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ regulator_id: targetId })
+          });
+        })
         .then(function (r) {
+          if (!r) return;
           if (r.ok) {
             setTimeout(function () {
               $scanBtn.disabled = false;
@@ -540,7 +557,7 @@
         .catch(function (e) {
           $scanBtn.disabled = false;
           $scanBtn.innerHTML = originalText;
-          console.error('Scan network error:', e);
+          console.error('Break/scan network error:', e);
           alert('Network error: ' + e);
         });
     });
