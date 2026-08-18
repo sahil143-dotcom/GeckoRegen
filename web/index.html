@@ -1,104 +1,208 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="dark" lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GeckoRegen — Self-Healing Regulatory Monitor</title>
-<link rel="stylesheet" href="/style.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ADAPT — GeckoRegen Core Intelligence</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "on-error": "#690005",
+        "inverse-surface": "#e2e2e5",
+        "outline": "#9f8e78",
+        "on-surface": "#e2e2e5",
+        "secondary": "#c6c6cc",
+        "amber-glow": "#FFBF00",
+        "primary": "#ffd597",
+        "text-secondary": "#94A3B8",
+        "primary-fixed": "#ffddaf",
+        "surface-tint": "#ffba43",
+        "surface-container": "#1e2022",
+        "secondary-container": "#47494e",
+        "surface-container-highest": "#333537",
+        "on-primary-container": "#6a4700",
+        "surface-variant": "#333537",
+        "surface-bright": "#37393c",
+        "on-primary": "#432c00",
+        "error": "#ffb4ab",
+        "on-secondary-container": "#b7b8be",
+        "background": "#111416",
+        "text-primary": "#F8FAFC",
+        "primary-container": "#ffb000",
+        "outline-variant": "#524533",
+        "surface-container-high": "#282a2c",
+        "on-tertiary": "#2e3036",
+        "surface-container-lowest": "#0c0e10",
+        "charcoal-border": "rgba(148, 163, 184, 0.08)",
+        "glass-surface": "rgba(12, 14, 18, 0.7)",
+        "glass-border": "rgba(255, 176, 0, 0.12)",
+        "error-container": "#93000a",
+        "tertiary": "#dadbe2",
+        "surface": "#111416",
+        "surface-container-low": "#1a1c1e",
+        "on-surface-variant": "#d7c4ac",
+        "surface-dim": "#111416",
+        "primary-fixed-dim": "#ffba43",
+        "on-error-container": "#ffdad6"
+      },
+      borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px" },
+      spacing: {
+        "panel-padding": "32px",
+        gutter: "24px",
+        "margin-mobile": "20px",
+        "margin-desktop": "48px"
+      },
+      fontFamily: {
+        "headline-lg": ["Hanken Grotesk"],
+        "headline-md": ["Hanken Grotesk"],
+        "headline-xl": ["Hanken Grotesk"],
+        "body-md": ["Hanken Grotesk"],
+        "data-label": ["Hanken Grotesk"],
+        "data-value": ["Hanken Grotesk"]
+      },
+      fontSize: {
+        "headline-md": ["24px", { lineHeight: "1.2", fontWeight: "700" }],
+        "body-md": ["16px", { lineHeight: "1.5", fontWeight: "400" }],
+        "headline-xl": ["48px", { lineHeight: "1.1", letterSpacing: "-0.03em", fontWeight: "900" }],
+        "headline-lg": ["32px", { lineHeight: "1.2", letterSpacing: "-0.02em", fontWeight: "800" }],
+        "headline-xl-mobile": ["36px", { lineHeight: "1.1", fontWeight: "900" }],
+        "data-label": ["12px", { lineHeight: "1", letterSpacing: "0.15em", fontWeight: "700" }],
+        "data-value": ["20px", { lineHeight: "1.1", letterSpacing: "-0.01em", fontWeight: "600" }]
+      }
+    }
+  }
+}
+</script>
+<link rel="stylesheet" href="/style.css"/>
 </head>
-<body>
-<!-- Animated rays background -->
-<div class="rays-bg" aria-hidden="true"></div>
+<body class="text-text-primary font-body-md antialiased overflow-x-hidden">
 
-<header class="topbar">
-  <div class="brand">
-    <div class="logo-mark" aria-hidden="true">
-      <svg viewBox="0 0 32 32" width="28" height="28"><path d="M16 2C9 2 4 7 4 14c0 5 3 9 8 12 1-3 2-5 4-6 2 1 3 3 4 6 5-3 8-7 8-12 0-7-5-12-12-12z" fill="none" stroke="#2dd4bf" stroke-width="2"/><circle cx="12" cy="13" r="2" fill="#2dd4bf"/><circle cx="20" cy="13" r="2" fill="#2dd4bf"/></svg>
-    </div>
-    <div class="brand-text">
-      <!-- Morph text title: MONITOR → HEAL → RECOVER → ADAPT -->
-      <h1 class="morph-title" id="morph-title">
-        <span class="morph-word" data-word="MONITOR">MONITOR</span>
-        <span class="morph-word out" data-word="HEAL">HEAL</span>
-        <span class="morph-word out" data-word="RECOVER">RECOVER</span>
-        <span class="morph-word out" data-word="ADAPT">ADAPT</span>
-      </h1>
-      <span class="tagline">Self-Healing Regulatory Intelligence</span>
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-margin-mobile md:px-margin-desktop h-20 bg-glass-surface backdrop-blur-[32px] border-b border-glass-border shadow-[inset_0_0_20px_rgba(255,176,0,0.05)]">
+  <div class="flex items-center gap-8">
+    <a href="/" class="font-headline-lg text-headline-lg font-black tracking-tighter text-primary">ADAPT</a>
+    <div class="nav-links hidden md:flex gap-6">
+      <a class="nav-link" data-nav="intelligence" href="/">Intelligence</a>
+      <a class="nav-link" data-nav="health" href="#health">Health</a>
+      <a class="nav-link" data-nav="feed" href="#feed">Feed</a>
+      <a class="nav-link" data-nav="guide" href="/guide">Guide</a>
+      <span class="nav-underline" aria-hidden="true"></span>
     </div>
   </div>
-  <div class="topbar-right">
-    <div id="live-indicator" class="live-indicator" title="SSE connection status">
-      <span class="live-dot"></span>
-      <span class="live-label">CONNECTING…</span>
+  <div class="flex items-center gap-4">
+    <div id="live-indicator" class="hidden md:flex items-center gap-2 px-3 py-1 rounded-full border border-charcoal-border bg-surface-container">
+      <span class="live-dot w-2 h-2 rounded-full bg-surface-container-highest"></span>
+      <span class="live-label font-data-label text-data-label text-text-secondary uppercase tracking-widest">Connecting</span>
     </div>
-    <button id="scan-btn" class="btn btn-primary" title="Trigger a scan across all regulators">
-      <span class="btn-icon">⚡</span> Simulate Break
-    </button>
-    <a href="/guide" class="btn btn-ghost">Judge Guide</a>
+    <a href="/guide" class="btn-secondary px-4 py-2 rounded font-data-label text-data-label uppercase tracking-widest hidden md:block">Induce Failure</a>
+    <button id="scan-btn" type="button" class="btn-primary px-6 py-2 rounded font-data-label text-data-label uppercase tracking-widest font-bold">Simulate Break</button>
   </div>
-</header>
+</nav>
 
-<main class="dashboard">
-  <!-- Summary strip -->
-  <section class="summary-strip">
-    <div class="stat"><span class="stat-num" id="stat-total">—</span><span class="stat-label">Regulators</span></div>
-    <div class="stat stat-ok"><span class="stat-num" id="stat-healthy">—</span><span class="stat-label">Healthy</span></div>
-    <div class="stat stat-warn"><span class="stat-num" id="stat-degraded">—</span><span class="stat-label">Degraded</span></div>
-    <div class="stat stat-bad"><span class="stat-num" id="stat-broken">—</span><span class="stat-label">Broken</span></div>
-    <div class="stat"><span class="stat-num" id="stat-heals">—</span><span class="stat-label">Heal Events</span></div>
-    <div class="stat"><span class="stat-num" id="stat-changes">—</span><span class="stat-label">Changes</span></div>
-  </section>
+<main class="pt-28 pb-20 px-margin-mobile md:px-margin-desktop max-w-[1440px] mx-auto min-h-screen flex flex-col gap-gutter">
 
-  <!-- Bento health grid -->
-  <section class="panel">
-    <div class="panel-head">
-      <h2>Scraper Health Grid</h2>
-      <span class="panel-hint">Live status via SSE — colors update in real time</span>
-    </div>
-    <div id="health-grid" class="health-grid">
-      <div class="empty-state">No regulators loaded. Trigger a scan or wait for monitor.</div>
-    </div>
-  </section>
-
-  <div class="two-col">
-    <!-- Change feed (activity feed) -->
-    <section class="panel">
-      <div class="panel-head">
-        <h2>Regulatory Change Feed</h2>
-        <span class="panel-hint">Recent detected changes</span>
+  <header class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-4">
+    <div>
+      <div class="flex items-center gap-3 mb-2" id="system-status">
+        <span id="system-status-dot" class="w-2 h-2 rounded-full bg-primary-container animate-pulse"></span>
+        <span id="system-status-label" class="font-data-label text-data-label text-primary-container uppercase tracking-widest">System Nominal</span>
       </div>
-      <div id="change-feed" class="change-feed">
-        <div class="empty-state">No changes detected yet.</div>
+      <h1 class="font-headline-xl-mobile md:font-headline-xl text-headline-xl-mobile md:text-headline-xl text-text-primary">Core Intelligence</h1>
+      <p class="mt-2 text-text-secondary text-sm tracking-wide">GeckoRegen · self-healing regulatory monitor</p>
+    </div>
+    <div class="flex flex-wrap gap-6 glass-panel px-6 py-4 rounded-lg">
+      <div class="flex flex-col">
+        <span class="font-data-label text-data-label text-text-secondary uppercase">Regulators</span>
+        <span id="stat-total" class="font-data-value text-data-value text-text-primary">—</span>
+      </div>
+      <div class="w-px bg-charcoal-border hidden sm:block"></div>
+      <div class="flex flex-col">
+        <span class="font-data-label text-data-label text-text-secondary uppercase">Healthy</span>
+        <span id="stat-healthy" class="font-data-value text-data-value text-primary-container">—</span>
+      </div>
+      <div class="w-px bg-charcoal-border hidden sm:block"></div>
+      <div class="flex flex-col">
+        <span class="font-data-label text-data-label text-text-secondary uppercase">Degraded</span>
+        <span id="stat-degraded" class="font-data-value text-data-value text-text-primary">—</span>
+      </div>
+      <div class="w-px bg-charcoal-border hidden sm:block"></div>
+      <div class="flex flex-col">
+        <span class="font-data-label text-data-label text-text-secondary uppercase">Broken</span>
+        <span id="stat-broken" class="font-data-value text-data-value text-error">—</span>
+      </div>
+      <div class="w-px bg-charcoal-border hidden sm:block"></div>
+      <div class="flex flex-col">
+        <span class="font-data-label text-data-label text-text-secondary uppercase">Heals</span>
+        <span id="stat-heals" class="font-data-value text-data-value text-text-primary">—</span>
+      </div>
+      <div class="w-px bg-charcoal-border hidden sm:block"></div>
+      <div class="flex flex-col">
+        <span class="font-data-label text-data-label text-text-secondary uppercase">Changes</span>
+        <span id="stat-changes" class="font-data-value text-data-value text-text-primary">—</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+
+    <section id="health" class="lg:col-span-8 glass-panel rounded-xl amber-highlight-top flex flex-col overflow-hidden min-h-[500px]">
+      <div class="p-6 border-b border-charcoal-border flex justify-between items-center bg-surface-container-low/50">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-text-secondary">public</span>
+          <h2 class="font-headline-md text-headline-md text-text-primary">Scraper Health Grid</h2>
+        </div>
+        <span class="font-data-label text-data-label text-text-secondary bg-surface-container px-3 py-1 rounded-full border border-charcoal-border">LIVE FEED</span>
+      </div>
+      <div class="relative flex-grow bg-black/40 p-4">
+        <div id="health-grid" class="health-grid"><div class="empty-state">Awaiting node telemetry</div></div>
       </div>
     </section>
 
-    <!-- Healing timeline -->
-    <section class="panel">
-      <div class="panel-head">
-        <h2>Self-Healing Timeline</h2>
-        <span class="panel-hint">Past heal events with success / failure</span>
-      </div>
-      <div id="heal-timeline" class="heal-timeline">
-        <div class="empty-state">No healing events yet.</div>
-      </div>
-    </section>
+    <div class="lg:col-span-4 flex flex-col gap-gutter">
+      <section id="heals" class="glass-panel rounded-xl flex-grow flex flex-col min-h-[280px]">
+        <div class="p-6 border-b border-charcoal-border flex justify-between items-center">
+          <h2 class="font-headline-md text-headline-md text-text-primary">Self-Healing Timeline</h2>
+          <span class="material-symbols-outlined text-text-secondary">filter_list</span>
+        </div>
+        <div id="heal-timeline" class="flex-grow overflow-y-auto max-h-[360px]"><div class="empty-state">No healing events</div></div>
+      </section>
+
+      <section class="glass-panel rounded-xl p-6 border-l-4 border-l-error">
+        <div class="flex items-center gap-2 mb-4">
+          <span class="material-symbols-outlined text-error">warning</span>
+          <h3 class="font-data-label text-data-label text-text-primary uppercase tracking-widest">Anomaly Stream</h3>
+        </div>
+        <div id="event-log" class="event-log max-h-[180px] overflow-y-auto"><p class="event-placeholder text-sm text-text-secondary">No anomalies in window.</p></div>
+      </section>
+    </div>
   </div>
 
-  <!-- Event log (live SSE tail) -->
-  <section class="panel">
-    <div class="panel-head">
-      <h2>Live Event Stream</h2>
-      <span class="panel-hint">SSE events as they arrive</span>
+  <section id="feed" class="glass-panel rounded-xl overflow-hidden">
+    <div class="p-6 border-b border-charcoal-border flex justify-between items-center bg-surface-container-low/50">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-text-secondary">rss_feed</span>
+        <h2 class="font-headline-md text-headline-md text-text-primary">Regulatory Change Feed</h2>
+      </div>
+      <span class="font-data-label text-data-label text-text-secondary uppercase tracking-widest">Detected changes</span>
     </div>
-    <div id="event-log" class="event-log"></div>
+    <div id="change-feed" class="change-feed"><div class="empty-state">No changes detected</div></div>
   </section>
+
 </main>
 
-<footer class="footer">
-  <span>GeckoRegen — Self-healing regulatory compliance monitor</span>
-  <span class="footer-mono">Bright Data Scraper Studio · Self-Healing API</span>
+<footer class="w-full py-panel-padding px-margin-mobile md:px-margin-desktop flex flex-col md:flex-row justify-between items-center bg-background border-t border-charcoal-border">
+  <span class="font-headline-md text-headline-md text-primary mb-4 md:mb-0">ADAPT</span>
+  <div class="flex gap-6 mb-4 md:mb-0">
+    <span class="font-body-md text-body-md text-text-secondary">Bright Data Scraper Studio</span>
+    <span class="font-body-md text-body-md text-text-secondary">Self-Healing API</span>
+    <a class="font-body-md text-body-md text-text-secondary hover:text-amber-glow transition-colors" href="/guide">System Status</a>
+  </div>
+  <span class="font-body-md text-body-md text-text-secondary">GeckoRegen · ADAPT Intelligence</span>
 </footer>
 
 <script src="/app.js"></script>

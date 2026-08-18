@@ -78,12 +78,12 @@
   }
 
   function statusClass(status) {
-    if (!status) return 'degraded';
+    if (!status || status === 'unknown') return 'unknown';
     if (status === 'healthy') return 'healthy';
     if (status === 'degraded') return 'degraded';
     if (status === 'broken') return 'broken';
     if (status === 'healing') return 'healing';
-    return 'degraded';
+    return 'unknown';
   }
 
   function statusLabel(status) {
@@ -140,9 +140,28 @@
       if (label) label.textContent = 'LIVE';
     } else if (state === 'error') {
       $live.classList.add('live-error');
-      if (label) label.textContent = 'DISCONNECTED';
+      if (label) label.textContent = 'OFFLINE';
     } else {
-      if (label) label.textContent = 'CONNECTING…';
+      if (label) label.textContent = 'SYNCING';
+    }
+  }
+
+  function setSystemStatus(kind) {
+    var $dot = document.getElementById('system-status-dot');
+    var $lab = document.getElementById('system-status-label');
+    if (!$lab) return;
+    if (kind === 'anomaly') {
+      $lab.textContent = 'ANOMALY DETECTED';
+      $lab.className = 'font-data-label text-data-label text-error uppercase tracking-widest';
+      if ($dot) $dot.className = 'w-2 h-2 rounded-full bg-error animate-pulse';
+    } else if (kind === 'syncing') {
+      $lab.textContent = 'SYNCING';
+      $lab.className = 'font-data-label text-data-label text-text-secondary uppercase tracking-widest';
+      if ($dot) $dot.className = 'w-2 h-2 rounded-full bg-surface-container-highest animate-pulse';
+    } else {
+      $lab.textContent = 'SYSTEM NOMINAL';
+      $lab.className = 'font-data-label text-data-label text-primary-container uppercase tracking-widest';
+      if ($dot) $dot.className = 'w-2 h-2 rounded-full bg-primary-container animate-pulse';
     }
   }
 
@@ -212,6 +231,8 @@
   // ── Event log ──────────────────────────────────────────────
   function logEvent(type, data) {
     if (!$log) return;
+    var placeholder = $log.querySelector('.event-placeholder');
+    if (placeholder) placeholder.remove();
     var now = new Date();
     var ts = now.toTimeString().slice(0, 8);
     var line = document.createElement('div');
@@ -291,10 +312,10 @@
             '<span class="status-text">' + statusLabel(status) + '</span>' +
           '</div>' +
           '<div class="reg-meta">' +
-            '<span>pop rate <span class="meta-val">' + fmtPct(popRate) + '</span></span>' +
+            '<span>pop <span class="meta-val">' + fmtPct(popRate) + '</span></span>' +
             '<span>records <span class="meta-val">' + (recCount != null ? recCount : '—') + '</span></span>' +
             '<span>missing <span class="meta-val">' + escapeHtml(missingStr) + '</span></span>' +
-            (lastScan ? '<span>last scan <span class="meta-val">' + escapeHtml(fmtTime(lastScan)) + '</span></span>' : '') +
+            (lastScan ? '<span>scan <span class="meta-val">' + escapeHtml(fmtTime(lastScan)) + '</span></span>' : '') +
           '</div>' +
         '</div>';
     });
@@ -352,6 +373,7 @@
     if ($statHealthy) $statHealthy.textContent = healthy;
     if ($statDegraded) $statDegraded.textContent = degraded;
     if ($statBroken) $statBroken.textContent = broken;
+    setSystemStatus(broken > 0 ? 'anomaly' : 'nominal');
   }
 
   function refreshSummaryFromCards() {
@@ -368,6 +390,7 @@
     if ($statHealthy) $statHealthy.textContent = healthy;
     if ($statDegraded) $statDegraded.textContent = degraded;
     if ($statBroken) $statBroken.textContent = broken;
+    setSystemStatus(broken > 0 ? 'anomaly' : 'nominal');
   }
 
   // ── Change feed (activity feed) ───────────────────────────────
@@ -401,18 +424,20 @@
       // Staggered slide-in
       var delay = (idx * 60) + 'ms';
       html +=
-        '<div class="change-item" style="animation-delay:' + delay + '">' +
-          '<div class="change-top">' +
-            '<span class="change-reg">' + escapeHtml(regName) + '</span>' +
-            (isNew ? '<span class="badge badge-new">NEW</span>' : '') +
+        '<div class="change-item data-row sev-' + escapeHtml(sev) + '" style="animation-delay:' + delay + '">' +
+          '<div>' +
+            '<div class="change-top">' +
+              '<span class="change-reg">' + escapeHtml(regName) + '</span>' +
+              (isNew ? '<span class="badge badge-new">NEW</span>' : '') +
+              '<span class="badge ' + sevClass + '">' + escapeHtml(sev) + '</span>' +
+            '</div>' +
             '<span class="change-title">' + escapeHtml(ch.title || 'Untitled') + '</span>' +
-            '<span class="badge ' + sevClass + '">' + escapeHtml(sev) + '</span>' +
-          '</div>' +
-          (ch.summary ? '<div class="change-summary">' + escapeHtml(ch.summary) + '</div>' : '') +
-          '<div class="change-meta">' +
-            (ch.publish_date ? '<span>' + escapeHtml(ch.publish_date) + '</span>' : '') +
-            (ch.category ? '<span>' + escapeHtml(ch.category) + '</span>' : '') +
-            (ch.article_url ? '<a class="change-link" href="' + escapeHtml(ch.article_url) + '" target="_blank" rel="noopener">link →</a>' : '') +
+            (ch.summary ? '<div class="change-summary">' + escapeHtml(ch.summary) + '</div>' : '') +
+            '<div class="change-meta">' +
+              (ch.publish_date ? '<span>' + escapeHtml(ch.publish_date) + '</span>' : '') +
+              (ch.category ? '<span>' + escapeHtml(ch.category) + '</span>' : '') +
+              (ch.article_url ? '<a class="change-link" href="' + escapeHtml(ch.article_url) + '" target="_blank" rel="noopener">Open source</a>' : '') +
+            '</div>' +
           '</div>' +
         '</div>';
     });
@@ -464,16 +489,19 @@
       var attemptsStr = h.attempts != null ? h.attempts + ' attempt' + (h.attempts > 1 ? 's' : '') : '';
       var delay = (idx * 50) + 'ms';
       html +=
-        '<div class="heal-item" style="animation-delay:' + delay + '">' +
-          '<div class="heal-dot ' + dotClass + '">' + symbol + '</div>' +
-          '<div class="heal-body">' +
-            '<div class="heal-reg">' + escapeHtml(regName) + ' — ' + escapeHtml(status) + '</div>' +
-            '<div class="heal-detail">' + escapeHtml(fieldsStr ? 'Broken: ' + fieldsStr : 'Healing event') + '</div>' +
+        '<div class="heal-item data-row ' + dotClass + '" style="animation-delay:' + delay + '">' +
+          '<div>' +
+            '<span class="heal-reg">' + escapeHtml(regName) + '</span>' +
+            '<span class="heal-detail">' + escapeHtml(fieldsStr ? 'Broken: ' + fieldsStr : 'Healing event') + '</span>' +
             '<div class="heal-meta">' +
               (attemptsStr ? '<span>' + escapeHtml(attemptsStr) + '</span>' : '') +
               (durationStr ? '<span>' + escapeHtml(durationStr) + '</span>' : '') +
               (h.triggered_at ? '<span>' + escapeHtml(fmtTime(h.triggered_at)) + '</span>' : '') +
             '</div>' +
+          '</div>' +
+          '<div class="text-right">' +
+            '<span class="heal-rate">' + escapeHtml(status) + '</span>' +
+            '<span class="heal-detail">' + escapeHtml(symbol) + '</span>' +
           '</div>' +
         '</div>';
     });
@@ -486,7 +514,7 @@
     $scanBtn.addEventListener('click', function () {
       $scanBtn.disabled = true;
       var originalText = $scanBtn.innerHTML;
-      $scanBtn.innerHTML = '<span class="btn-icon">⟳</span> Scanning…';
+      $scanBtn.textContent = 'SCANNING';
       var regIds = Object.keys(regulators).map(Number).sort(function(a,b){return a-b;});
       var targetId = regIds.length ? regIds[0] : 1;
       fetch('/api/scan', {
@@ -518,6 +546,57 @@
     });
   }
 
+  // ── Sliding nav underline ──────────────────────────────────
+  function initNavUnderline() {
+    var nav = document.querySelector('.nav-links');
+    if (!nav) return;
+    var bar = nav.querySelector('.nav-underline');
+    var links = nav.querySelectorAll('.nav-link');
+    if (!bar || !links.length) return;
+
+    function activeLink() {
+      var hash = (location.hash || '').toLowerCase();
+      var path = location.pathname || '';
+      if (path.indexOf('/guide') !== -1) {
+        return nav.querySelector('.nav-link[data-nav="guide"]');
+      }
+      if (hash === '#health') return nav.querySelector('.nav-link[data-nav="health"]');
+      if (hash === '#feed') return nav.querySelector('.nav-link[data-nav="feed"]');
+      if (hash === '#heals') return nav.querySelector('.nav-link[data-nav="health"]');
+      return nav.querySelector('.nav-link[data-nav="intelligence"]');
+    }
+
+    function moveTo(el) {
+      if (!el) return;
+      var navBox = nav.getBoundingClientRect();
+      var box = el.getBoundingClientRect();
+      bar.style.width = box.width + 'px';
+      bar.style.transform = 'translateX(' + (box.left - navBox.left) + 'px)';
+    }
+
+    function setActive(el) {
+      links.forEach(function (l) { l.classList.remove('is-active'); });
+      if (el) el.classList.add('is-active');
+      moveTo(el);
+    }
+
+    setActive(activeLink());
+    requestAnimationFrame(function () { moveTo(activeLink()); });
+
+    links.forEach(function (link) {
+      link.addEventListener('mouseenter', function () { moveTo(link); });
+      link.addEventListener('focus', function () { moveTo(link); });
+      link.addEventListener('click', function () { setActive(link); });
+    });
+    nav.addEventListener('mouseleave', function () {
+      moveTo(nav.querySelector('.nav-link.is-active') || activeLink());
+    });
+    window.addEventListener('hashchange', function () { setActive(activeLink()); });
+    window.addEventListener('resize', function () {
+      moveTo(nav.querySelector('.nav-link.is-active') || activeLink());
+    });
+  }
+
   // ── Init ───────────────────────────────────────────────────
   function init() {
     fetchHealth();
@@ -526,6 +605,7 @@
     connectSSE();
     initMorphTitle();
     initScanButton();
+    initNavUnderline();
     setInterval(function () {
       fetchHealth();
       fetchChanges();
