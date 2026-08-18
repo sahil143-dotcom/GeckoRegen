@@ -18,8 +18,53 @@
   var prevStatus = {};
   var evtSource = null;
   var reconnectTimer = null;
-  var morphIndex = 0;
-  var morphWords = [];
+  var pipelineTimer = null;
+  var PIPELINE_ORDER = ['monitor', 'detect', 'heal', 'validate', 'memory'];
+  var PIPELINE_CAPTION = {
+    monitor: 'monitor.py → bd_client.trigger_scraper / get_dataset',
+    detect: 'detector.py → detect_failures + save_snapshot',
+    heal: 'healer.py → BD refactor_template (Self-Healing API)',
+    validate: 'healer.py → re-run scraper, population ≥ 90%',
+    memory: 'memory.py + db.py → changes, health, profiles',
+    idle: 'Idle — click Simulate Break'
+  };
+
+  function setPipeline(stage) {
+    var nodes = document.querySelectorAll('.pipeline-stage');
+    var cap = document.getElementById('pipeline-caption');
+    var idx = PIPELINE_ORDER.indexOf(stage);
+    nodes.forEach(function (el) {
+      var s = el.getAttribute('data-stage');
+      var si = PIPELINE_ORDER.indexOf(s);
+      el.classList.remove('on', 'active');
+      if (idx >= 0 && si >= 0 && si < idx) el.classList.add('on');
+      if (s === stage) el.classList.add('active');
+    });
+    if (cap) cap.textContent = PIPELINE_CAPTION[stage] || PIPELINE_CAPTION.idle;
+  }
+
+  function playPipeline(result) {
+    if (pipelineTimer) {
+      clearTimeout(pipelineTimer);
+      pipelineTimer = null;
+    }
+    var steps = ['monitor', 'detect'];
+    if (result && result.healed) {
+      steps.push('heal', 'validate');
+    } else if (result && result.status === 'broken') {
+      steps.push('heal');
+    }
+    steps.push('memory');
+    var i = 0;
+    function tick() {
+      setPipeline(steps[i]);
+      i += 1;
+      if (i < steps.length) {
+        pipelineTimer = setTimeout(tick, 450);
+      }
+    }
+    tick();
+  }
 
   // ── DOM refs ───────────────────────────────────────────────
   var $grid = document.getElementById('health-grid');
@@ -170,13 +215,23 @@
     logEvent(type, data);
     if (!data) data = {};
     switch (type) {
+      case 'sandbox_toggled':
+        setPipeline('monitor');
+        break;
+
+      case 'pipeline_stage':
+        if (data.stage) setPipeline(data.stage);
+        break;
+
       case 'scan_started':
+        setPipeline('monitor');
         if (data.regulator_id != null) {
           updateCardStatus(data.regulator_id, 'healing');
         }
         break;
 
       case 'scan_completed':
+        playPipeline(data.result || {});
         if (data.regulator_id != null && data.result) {
           var res = data.result;
           var newStatus = res.status || 'healthy';
@@ -205,6 +260,7 @@
         break;
 
       case 'heal_triggered':
+        setPipeline('heal');
         if (data.regulator_id != null) {
           updateCardStatus(data.regulator_id, 'healing');
         }
@@ -212,6 +268,7 @@
         break;
 
       case 'heal_completed':
+        setPipeline('validate');
         if (data.regulator_id != null) {
           updateCardStatus(data.regulator_id, data.status || 'healthy');
         }

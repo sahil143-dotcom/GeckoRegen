@@ -189,7 +189,15 @@ def api_scan():
     def _run_scan():
         try:
             publish_event("scan_started", {"regulator_id": reg_id, "name": reg["name"]})
-            result = monitor.monitor_regulator(reg)
+
+            def _on_stage(stage: str) -> None:
+                publish_event("pipeline_stage", {
+                    "stage": stage,
+                    "regulator_id": reg_id,
+                    "name": reg["name"],
+                })
+
+            result = monitor.monitor_regulator(reg, on_stage=_on_stage)
             publish_event("scan_completed", {
                 "regulator_id": reg_id,
                 "name": reg["name"],

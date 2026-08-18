@@ -150,11 +150,16 @@ def heal_pipeline(
     expected_schema,
     min_population_rate=0.9,
     max_attempts=3,
+    on_stage=None,
 ):
     """Full heal loop: generate prompt → trigger → poll → approve → validate.
 
     Sharper prompts on each retry.  Returns dict with success/failure + details.
     """
+    def _stage(name):
+        if on_stage:
+            on_stage(name)
+
     base_prompt = generate_heal_prompt(regulator_name, broken_fields, last_known_good)
     validation = None
 
@@ -170,6 +175,7 @@ def heal_pipeline(
             prompt = (prefix + base_prompt)[:BD_PROMPT_LIMIT]
 
         # 1. trigger + poll
+        _stage("heal")
         heal_result = trigger_and_poll_heal(collector_id, prompt, url)
         status = heal_result.get("status", "")
 
@@ -186,6 +192,7 @@ def heal_pipeline(
             continue
 
         # 3. validate the healed scraper
+        _stage("validate")
         validation = validate_heal(collector_id, url, expected_schema, min_population_rate)
 
         if validation["valid"]:

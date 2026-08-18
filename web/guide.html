@@ -83,6 +83,53 @@ tailwind.config = {
   </section>
 
   <section class="glass-panel rounded-xl p-6 amber-highlight-top">
+    <h2 class="font-headline-md text-headline-md mb-3">90 seconds — say this</h2>
+    <ol>
+      <li><strong>Problem:</strong> Regulator sites change. Scrapers die silently. Missed rules = fines.</li>
+      <li><strong>We are not a scraper.</strong> Bright Data scrapes. We govern: detect → heal → validate → remember.</li>
+      <li><strong>Point at Runtime:</strong> MONITOR → DETECT → HEAL → VALIDATE → MEMORY. That strip is the real Python path lighting up.</li>
+      <li><strong>Live proof:</strong> FCA = 751 real records. Simulate Break hits BD Test Shop (public URL). ESMA/BaFin/MAS are labelled fallback.</li>
+      <li><strong>Differentiator:</strong> We do not trust BD’s heal. Re-run, population ≥ 90%, then accept.</li>
+    </ol>
+    <p class="mt-3"><a href="/" class="btn-primary px-4 py-2 rounded font-data-label text-data-label uppercase tracking-widest font-bold inline-block">Open dashboard</a></p>
+  </section>
+
+  <section class="glass-panel rounded-xl p-6">
+    <h2 class="font-headline-md text-headline-md mb-3">Architecture — how a click becomes data</h2>
+    <div class="pipeline mb-4">
+      <div class="pipeline-stage on"><span class="pipeline-file">server.py</span><span class="pipeline-name">API + SSE</span><span class="pipeline-hint">Flask</span></div>
+      <div class="pipeline-arrow"></div>
+      <div class="pipeline-stage on"><span class="pipeline-file">monitor.py</span><span class="pipeline-name">Orchestrator</span><span class="pipeline-hint">Thread pool</span></div>
+      <div class="pipeline-arrow"></div>
+      <div class="pipeline-stage on"><span class="pipeline-file">bd_client.py</span><span class="pipeline-name">Bright Data</span><span class="pipeline-hint">Studio + Heal</span></div>
+      <div class="pipeline-arrow"></div>
+      <div class="pipeline-stage on"><span class="pipeline-file">detector.py</span><span class="pipeline-name">Health</span><span class="pipeline-hint">JSONL diff</span></div>
+      <div class="pipeline-arrow"></div>
+      <div class="pipeline-stage on"><span class="pipeline-file">healer.py</span><span class="pipeline-name">Gate</span><span class="pipeline-hint">Validate heal</span></div>
+      <div class="pipeline-arrow"></div>
+      <div class="pipeline-stage on"><span class="pipeline-file">memory.py</span><span class="pipeline-name">SQLite</span><span class="pipeline-hint">db.py</span></div>
+    </div>
+    <p><strong>Request path:</strong> Browser → <code>POST /api/scan</code> or <code>/api/break</code> → <code>monitor.monitor_regulator</code> → <code>bd_client.trigger_scraper</code> (<code>/dca/trigger</code>) → poll <code>/dca/dataset</code> → <code>detector.detect_failures</code> → if broken, <code>healer.heal_pipeline</code> (<code>refactor_template</code>) → validate → <code>memory.record_*</code> → SSE <code>/api/events</code> updates the dashboard.</p>
+    <p class="mt-2"><strong>We do not use</strong> Unlocker, SERP, or Scraping Browser. Product pick: Scraper Studio + Self-Healing API.</p>
+  </section>
+
+  <section class="glass-panel rounded-xl p-6">
+    <h2 class="font-headline-md text-headline-md mb-3">Code flow (one scan)</h2>
+    <ol>
+      <li><code>web/app.js</code> — Simulate Break → <code>POST /api/break</code> then <code>POST /api/scan</code> for BD Test Shop</li>
+      <li><code>server.py</code> — cooldown lock, background thread, SSE <code>scan_started</code></li>
+      <li><code>monitor.run_scraper</code> — <code>bd_client.trigger_scraper</code> + <code>get_dataset</code></li>
+      <li><code>detector.save_snapshot</code> — append <code>data/snapshots/{id}.jsonl</code></li>
+      <li><code>detector.detect_failures</code> — null / type / regex vs schema</li>
+      <li><code>db.update_health</code> — healthy / degraded / broken</li>
+      <li><code>memory.record_change</code> — every record into <code>changes</code></li>
+      <li>If broken: <code>healer.generate_heal_prompt</code> → BD Self-Healing → <code>_validate_records</code> (pop ≥ 90%, types, count). Max 3 attempts.</li>
+      <li><code>adapter.py</code> — optional: raise scan frequency if the regulator is noisy</li>
+      <li>SSE <code>scan_completed</code> — Runtime strip walks Monitor → Detect → (Heal → Validate) → Memory</li>
+    </ol>
+  </section>
+
+  <section class="glass-panel rounded-xl p-6 amber-highlight-top">
     <h2 class="font-headline-md text-headline-md mb-3">What is live vs fallback</h2>
     <p><strong>Live Bright Data collectors:</strong> FCA (751 records), FINMA, BD Test Shop (<code>https://ecommerce-shop-brd.vercel.app</code> — public, BD can reach it).</p>
     <p><strong>Fallback (pre-recorded):</strong> ESMA, BaFin, MAS. These have <code>active: 0</code> so Monitor never fires a stub collector. Rows are tagged <code>snapshot_id = fallback:synthetic</code>. MAS is BD-blocked.</p>
@@ -161,7 +208,7 @@ tailwind.config = {
   </section>
 
   <section class="glass-panel rounded-xl p-6">
-    <h2 class="font-headline-md text-headline-md mb-3">Architecture</h2>
+    <h2 class="font-headline-md text-headline-md mb-3">Modules</h2>
     <ul>
       <li><strong>bd_client.py</strong> — Bright Data API client</li>
       <li><strong>db.py</strong> — SQLite (regulators, health_scores, changes, healing_events, regulator_profiles)</li>

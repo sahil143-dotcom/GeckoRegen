@@ -148,6 +148,44 @@ tailwind.config = {
     </div>
   </header>
 
+  <section id="pipeline" class="glass-panel rounded-xl amber-highlight-top p-5" aria-label="Runtime pipeline">
+    <div class="flex justify-between items-baseline mb-4">
+      <h2 class="font-data-label text-data-label text-text-secondary uppercase tracking-widest">Runtime</h2>
+      <span id="pipeline-caption" class="font-data-label text-data-label text-primary-container uppercase tracking-widest">Idle — click Simulate Break</span>
+    </div>
+    <div class="pipeline">
+      <div class="pipeline-stage" data-stage="monitor">
+        <span class="pipeline-file">monitor.py</span>
+        <span class="pipeline-name">Monitor</span>
+        <span class="pipeline-hint">BD trigger + dataset</span>
+      </div>
+      <div class="pipeline-arrow" aria-hidden="true"></div>
+      <div class="pipeline-stage" data-stage="detect">
+        <span class="pipeline-file">detector.py</span>
+        <span class="pipeline-name">Detect</span>
+        <span class="pipeline-hint">Snapshot diff + schema</span>
+      </div>
+      <div class="pipeline-arrow" aria-hidden="true"></div>
+      <div class="pipeline-stage" data-stage="heal">
+        <span class="pipeline-file">healer.py</span>
+        <span class="pipeline-name">Heal</span>
+        <span class="pipeline-hint">BD Self-Healing API</span>
+      </div>
+      <div class="pipeline-arrow" aria-hidden="true"></div>
+      <div class="pipeline-stage" data-stage="validate">
+        <span class="pipeline-file">healer.py</span>
+        <span class="pipeline-name">Validate</span>
+        <span class="pipeline-hint">Re-run · pop ≥ 90%</span>
+      </div>
+      <div class="pipeline-arrow" aria-hidden="true"></div>
+      <div class="pipeline-stage" data-stage="memory">
+        <span class="pipeline-file">memory.py</span>
+        <span class="pipeline-name">Memory</span>
+        <span class="pipeline-hint">SQLite + profiles</span>
+      </div>
+    </div>
+  </section>
+
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
 
     <section id="health" class="lg:col-span-8 glass-panel rounded-xl amber-highlight-top flex flex-col overflow-hidden min-h-[500px]">

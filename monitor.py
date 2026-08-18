@@ -152,17 +152,26 @@ def _as_text(value: Any) -> str | None:
 
 # ── 3. monitor_regulator ──────────────────────────────────────────────
 
-def monitor_regulator(regulator: dict[str, Any]) -> dict[str, Any]:
+def monitor_regulator(
+    regulator: dict[str, Any],
+    on_stage: Any = None,
+) -> dict[str, Any]:
     """Full pipeline for a single regulator:
     run scraper → save snapshot → detect failures → heal if broken → record.
 
     *regulator* keys: id, name, url, collector_id, (optional) expected_schema.
+    *on_stage* optional callback(stage: str) for live dashboard (monitor/detect/heal/validate/memory).
     Returns a result dict summarising the run.
     """
+    def _stage(name: str) -> None:
+        if on_stage:
+            on_stage(name)
+
     reg_id = regulator["id"]
     schema = _schema_for(regulator)
 
     # 1. Run scraper
+    _stage("monitor")
     try:
         records = run_scraper(regulator)
     except Exception as e:
@@ -173,6 +182,7 @@ def monitor_regulator(regulator: dict[str, Any]) -> dict[str, Any]:
                 "healed": False}
 
     # 2. Save snapshot
+    _stage("detect")
     snapshot_path = detector.save_snapshot(reg_id, records) if records else None
 
     # 3. Check health
@@ -216,6 +226,7 @@ def monitor_regulator(regulator: dict[str, Any]) -> dict[str, Any]:
                     "bool" if spec.get("type") is bool else None)
             for field, spec in schema.items()
         }
+        _stage("heal")
         heal_result = healer.heal_pipeline(
             regulator["collector_id"],
             regulator["name"],
@@ -223,6 +234,7 @@ def monitor_regulator(regulator: dict[str, Any]) -> dict[str, Any]:
             last_good,
             regulator["url"],
             heal_schema,
+            on_stage=on_stage,
         )
 
         # Record the heal event
@@ -250,6 +262,7 @@ def monitor_regulator(regulator: dict[str, Any]) -> dict[str, Any]:
             health["status"] = "broken"
 
     # 6. Update last_scanned_at
+    _stage("memory")
     with db.get_conn() as conn:
         conn.execute(
             "UPDATE regulators SET last_scanned_at = datetime('now') WHERE id = ?",
