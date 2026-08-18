@@ -68,6 +68,16 @@ def guide():
     return send_from_directory(_WEB_DIR, "guide.html")
 
 
+@app.route("/style.css")
+def style_css():
+    return send_from_directory(_WEB_DIR, "style.css", mimetype="text/css")
+
+
+@app.route("/app.js")
+def app_js():
+    return send_from_directory(_WEB_DIR, "app.js", mimetype="application/javascript")
+
+
 # ── routes: JSON API ─────────────────────────────────────────────────
 
 

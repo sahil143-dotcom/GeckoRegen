@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeckoRegen — Judge Guide</title>
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="guide-page">
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo-mark" aria-hidden="true">
+      <svg viewBox="0 0 32 32" width="28" height="28"><path d="M16 2C9 2 4 7 4 14c0 5 3 9 8 12 1-3 2-5 4-6 2 1 3 3 4 6 5-3 8-7 8-12 0-7-5-12-12-12z" fill="none" stroke="#2dd4bf" stroke-width="2"/><circle cx="12" cy="13" r="2" fill="#2dd4bf"/><circle cx="20" cy="13" r="2" fill="#2dd4bf"/></svg>
+    </div>
+    <div class="brand-text">
+      <h1>GeckoRegen</h1>
+      <span class="tagline">Judge Guide</span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <a href="/" class="btn btn-ghost">← Dashboard</a>
+    <button id="demo-btn" class="btn btn-primary">
+      <span class="btn-icon">▶</span> Run Demo
+    </button>
+  </div>
+</header>
+
+<main class="guide-main">
+
+  <section class="guide-section">
+    <h2>What is GeckoRegen?</h2>
+    <p>
+      GeckoRegen is a <strong>self-healing regulatory compliance monitor</strong>.
+      Compliance teams must track regulatory changes across many jurisdictions and websites.
+      When a regulator redesigns their site, scrapers <em>break silently</em> — critical updates get missed,
+      potentially costing millions in fines.
+    </p>
+    <p>
+      GeckoRegen detects breakage automatically, <strong>heals the scraper</strong> via Bright Data's
+      Self-Healing API, <strong>validates the fix</strong> against data-quality constraints, and builds
+      <strong>persistent memory</strong> that learns from every change.
+    </p>
+    <div class="pipeline-diagram">
+      <span class="pipe-step">Monitor</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-step">Detect</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-step">Heal</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-step">Validate</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-step">Memory</span>
+    </div>
+  </section>
+
+  <section class="guide-section">
+    <h2>How to Read the Health Grid</h2>
+    <p>Each regulator is a card. The card color reflects the scraper's latest health status:</p>
+    <div class="legend-grid">
+      <div class="legend-card legend-healthy">
+        <span class="legend-dot dot-healthy"></span>
+        <strong>Green — Healthy</strong>
+        <span class="legend-desc">All fields populated, schema checks pass. Scraper working normally.</span>
+      </div>
+      <div class="legend-card legend-degraded">
+        <span class="legend-dot dot-degraded"></span>
+        <strong>Yellow — Degraded</strong>
+        <span class="legend-desc">Some optional fields missing or population rate below threshold. Still returning data but needs attention.</span>
+      </div>
+      <div class="legend-card legend-broken">
+        <span class="legend-dot dot-broken"></span>
+        <strong>Red — Broken</strong>
+        <span class="legend-desc">Required fields returning null, zero records, or critical schema failure. Self-healing triggered.</span>
+      </div>
+    </div>
+    <p class="guide-note">Cards <strong>animate</strong> when status changes: red pulse on break, green pulse on heal.</p>
+  </section>
+
+  <section class="guide-section">
+    <h2>What Happens When a Scraper Breaks</h2>
+    <ol class="step-list">
+      <li><strong>Detection</strong> — The monitor runs the scraper via Bright Data's Trigger/Dataset API. The detector diffs the result against the expected schema (field types, regex patterns, population rate).</li>
+      <li><strong>Classification</strong> — Failures are classified by severity: <span class="badge badge-critical">critical</span> for required fields, <span class="badge badge-warning">warning</span> for optional fields, <span class="badge badge-info">info</span> for minor drift.</li>
+      <li><strong>Health update</strong> — The regulator card turns red in the dashboard (live via SSE). The health grid pulses.</li>
+      <li><strong>Heal triggered</strong> — A contextual prompt is generated with: the broken field name, expected pattern, and last-known-good value. This is sent to BD's Self-Healing API (<code>refactor_template</code>).</li>
+    </ol>
+  </section>
+
+  <section class="guide-section">
+    <h2>How Self-Healing Works</h2>
+    <ol class="step-list">
+      <li><strong>Contextual prompt</strong> — Not generic "it broke." The prompt names the field, shows the expected regex, includes a real example value from the last-known-good snapshot.</li>
+      <li><strong>BD Self-Healing API</strong> — Submits the prompt, polls for completion, auto-approves if BD waits for human-in-the-loop.</li>
+      <li><strong>Validation gate</strong> — The healed scraper is re-run on the same URL. The output is checked: population rate ≥ 90%, format consistency, type match, record count > 0. <em>This is the differentiator — we don't trust BD blindly.</em></li>
+      <li><strong>Retry with sharper prompts</strong> — If validation fails, the prompt is sharpened with the specific failure reason. Max 3 attempts.</li>
+      <li><strong>Memory update</strong> — Every heal event is logged: broken fields, prompt used, attempts, validation result, duration. Regulator profiles learn success rates over time.</li>
+    </ol>
+  </section>
+
+  <section class="guide-section guide-demo">
+    <h2>Step-by-Step Demo for Judges</h2>
+    <div class="demo-steps">
+      <div class="demo-step">
+        <span class="demo-num">1</span>
+        <div>
+          <strong>Open the dashboard</strong>
+          <p>You're looking at the health grid. All regulators should show green (healthy) if the monitor has run. If the grid is empty, click <strong>Simulate Break</strong> to trigger the first scan.</p>
+        </div>
+      </div>
+      <div class="demo-step">
+        <span class="demo-num">2</span>
+        <div>
+          <strong>Click "Simulate Break"</strong>
+          <p>This POSTs to <code>/api/scan</code>, triggering a scan. The scraper runs against the sandbox site. If the sandbox has been modified (simulating a site redesign), the scraper will return broken fields — watch the card turn <span class="inline-red">red</span> with a pulse animation.</p>
+        </div>
+      </div>
+      <div class="demo-step">
+        <span class="demo-num">3</span>
+        <div>
+          <strong>Watch the self-healing</strong>
+          <p>The healer generates a contextual prompt and sends it to BD's Self-Healing API. The healing timeline (bottom right) shows the event appearing. When the fix validates, the card pulses <span class="inline-green">green</span> and returns to healthy.</p>
+        </div>
+      </div>
+      <div class="demo-step">
+        <span class="demo-num">4</span>
+        <div>
+          <strong>Check the change feed</strong>
+          <p>The left panel shows recently detected regulatory changes with severity badges. Each entry links to the original article.</p>
+        </div>
+      </div>
+      <div class="demo-step">
+        <span class="demo-num">5</span>
+        <div>
+          <strong>Watch the live event stream</strong>
+          <p>The bottom panel shows SSE events arriving in real time: scan_started, health_changed, heal_triggered, heal_completed. This is the live nervous system of the monitor.</p>
+        </div>
+      </div>
+      <div class="demo-step">
+        <span class="demo-num">6</span>
+        <div>
+          <strong>Or click "Run Demo" above</strong>
+          <p>This triggers the full automated demo sequence — scan, detect break, heal, validate — so you can watch the entire pipeline flow without manual clicks.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section">
+    <h2>Architecture at a Glance</h2>
+    <ul class="arch-list">
+      <li><strong>Bright Data Scraper Studio</strong> — builds and runs scrapers per regulator site</li>
+      <li><strong>Self-Healing API</strong> — regenerates broken scraper code with contextual prompts</li>
+      <li><strong>Trigger/Dataset API</strong> — runs scrapers programmatically and downloads results</li>
+      <li><strong>SQLite</strong> — persistent memory: regulators, health scores, changes, heal events, profiles</li>
+      <li><strong>Flask + SSE</strong> — live dashboard with real-time status updates</li>
+      <li><strong>Vanilla JS frontend</strong> — no build step, no frameworks, no node_modules</li>
+    </ul>
+  </section>
+
+  <div id="demo-status" class="demo-status" hidden></div>
+
+</main>
+
+<footer class="footer">
+  <span>GeckoRegen — Judge Guide</span>
+  <span class="footer-mono">Suit-Up Track · Best UI</span>
+</footer>
+
+<script>
+// guide.html — minimal JS for the Run Demo button
+(function(){
+  var btn = document.getElementById('demo-btn');
+  var status = document.getElementById('demo-status');
+  if (!btn) return;
+  btn.addEventListener('click', function(){
+    btn.disabled = true;
+    btn.textContent = 'Running…';
+    status.hidden = false;
+    status.textContent = 'Triggering scan…';
+    status.className = 'demo-status demo-status-info';
+    fetch('/api/scan', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({regulator_id: 1})
+    }).then(function(r){
+      if (r.ok) {
+        status.textContent = 'Scan triggered. Open the dashboard to watch the health grid update live.';
+        status.className = 'demo-status demo-status-ok';
+        btn.textContent = '✓ Demo Started';
+      } else {
+        return r.json().then(function(d){
+          status.textContent = 'Scan failed: ' + (d.error || r.status);
+          status.className = 'demo-status demo-status-err';
+          btn.disabled = false;
+          btn.textContent = 'Run Demo';
+        });
+      }
+    }).catch(function(e){
+      status.textContent = 'Network error: ' + e;
+      status.className = 'demo-status demo-status-err';
+      btn.disabled = false;
+      btn.textContent = 'Run Demo';
+    });
+  });
+})();
+</script>
+</body>
+</html>

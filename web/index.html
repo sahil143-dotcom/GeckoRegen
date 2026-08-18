@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeckoRegen — Self-Healing Regulatory Monitor</title>
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="logo-mark" aria-hidden="true">
+      <svg viewBox="0 0 32 32" width="28" height="28"><path d="M16 2C9 2 4 7 4 14c0 5 3 9 8 12 1-3 2-5 4-6 2 1 3 3 4 6 5-3 8-7 8-12 0-7-5-12-12-12z" fill="none" stroke="#2dd4bf" stroke-width="2"/><circle cx="12" cy="13" r="2" fill="#2dd4bf"/><circle cx="20" cy="13" r="2" fill="#2dd4bf"/></svg>
+    </div>
+    <div class="brand-text">
+      <h1>GeckoRegen</h1>
+      <span class="tagline">Self-Healing Regulatory Intelligence</span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div id="live-indicator" class="live-indicator" title="SSE connection status">
+      <span class="live-dot"></span>
+      <span class="live-label">CONNECTING…</span>
+    </div>
+    <button id="scan-btn" class="btn btn-primary" title="Trigger a scan across all regulators">
+      <span class="btn-icon">⚡</span> Simulate Break
+    </button>
+    <a href="/guide" class="btn btn-ghost">Judge Guide</a>
+  </div>
+</header>
+
+<main class="dashboard">
+  <!-- Summary strip -->
+  <section class="summary-strip">
+    <div class="stat"><span class="stat-num" id="stat-total">—</span><span class="stat-label">Regulators</span></div>
+    <div class="stat stat-ok"><span class="stat-num" id="stat-healthy">—</span><span class="stat-label">Healthy</span></div>
+    <div class="stat stat-warn"><span class="stat-num" id="stat-degraded">—</span><span class="stat-label">Degraded</span></div>
+    <div class="stat stat-bad"><span class="stat-num" id="stat-broken">—</span><span class="stat-label">Broken</span></div>
+    <div class="stat"><span class="stat-num" id="stat-heals">—</span><span class="stat-label">Heal Events</span></div>
+    <div class="stat"><span class="stat-num" id="stat-changes">—</span><span class="stat-label">Changes</span></div>
+  </section>
+
+  <!-- Health grid -->
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Scraper Health Grid</h2>
+      <span class="panel-hint">Live status via SSE — colors update in real time</span>
+    </div>
+    <div id="health-grid" class="health-grid">
+      <div class="empty-state">No regulators loaded. Trigger a scan or wait for monitor.</div>
+    </div>
+  </section>
+
+  <div class="two-col">
+    <!-- Change feed -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Regulatory Change Feed</h2>
+        <span class="panel-hint">Recent detected changes</span>
+      </div>
+      <div id="change-feed" class="change-feed">
+        <div class="empty-state">No changes detected yet.</div>
+      </div>
+    </section>
+
+    <!-- Healing timeline -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Self-Healing Timeline</h2>
+        <span class="panel-hint">Past heal events with success / failure</span>
+      </div>
+      <div id="heal-timeline" class="heal-timeline">
+        <div class="empty-state">No healing events yet.</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Event log (live SSE tail) -->
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Live Event Stream</h2>
+      <span class="panel-hint">SSE events as they arrive</span>
+    </div>
+    <div id="event-log" class="event-log"></div>
+  </section>
+</main>
+
+<footer class="footer">
+  <span>GeckoRegen — Self-healing regulatory compliance monitor</span>
+  <span class="footer-mono">Bright Data Scraper Studio · Self-Healing API</span>
+</footer>
+
+<script src="/app.js"></script>
+</body>
+</html>
