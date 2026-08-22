@@ -1,7 +1,10 @@
 __pycache__/
 *.pyc
 .env
+touch.env
 *.db
 .venv/
+venv/
+sahil/
 node_modules/
 data/snapshots/
