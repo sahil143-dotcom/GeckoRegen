@@ -15,9 +15,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-API_TOKEN = os.environ["BRIGHTDATA_API_KEY"]
 BASE = "https://api.brightdata.com"
-HEADERS = {"Authorization": f"Bearer {API_TOKEN}", "Content-Type": "application/json"}
+
+
+def _headers():
+    token = os.environ.get("BRIGHTDATA_API_KEY")
+    if not token:
+        raise RuntimeError("BRIGHTDATA_API_KEY is not set")
+    return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
 
 # ── Scraper Studio: trigger + download ──────────────────────────────
@@ -27,7 +32,7 @@ def trigger_scraper(collector_id, urls, queue_next=1):
     r = requests.post(
         f"{BASE}/dca/trigger",
         params={"collector": collector_id, "queue_next": queue_next},
-        headers=HEADERS,
+        headers=_headers(),
         json=[{"url": u} for u in urls],
     )
     r.raise_for_status()
@@ -40,7 +45,7 @@ def get_dataset(snapshot_id):
         r = requests.get(
             f"{BASE}/dca/dataset",
             params={"id": snapshot_id},
-            headers=HEADERS,
+            headers=_headers(),
         )
         if r.status_code == 200:
             return r.json()
@@ -58,7 +63,7 @@ def list_scrapers(search=None):
     params = {}
     if search:
         params["search"] = search
-    r = requests.get(f"{BASE}/dca/collectors_list", headers=HEADERS, params=params)
+    r = requests.get(f"{BASE}/dca/collectors_list", headers=_headers(), params=params)
     r.raise_for_status()
     return r.json()
 
@@ -72,7 +77,7 @@ def trigger_heal(collector_id, prompt, url=None):
         body["url"] = url
     r = requests.post(
         f"{BASE}/dca/collectors/{collector_id}/refactor_template",
-        headers=HEADERS,
+        headers=_headers(),
         json=body,
     )
     r.raise_for_status()
@@ -85,7 +90,7 @@ def poll_heal(collector_id, interval=5, timeout=900):
     while time.time() < deadline:
         r = requests.get(
             f"{BASE}/dca/collectors/{collector_id}/refactor_template/progress",
-            headers=HEADERS,
+            headers=_headers(),
         )
         r.raise_for_status()
         data = r.json()
@@ -104,7 +109,7 @@ def approve_heal(collector_id, approve=True):
     """
     r = requests.post(
         f"{BASE}/dca/collectors/{collector_id}/resume_automation_job",
-        headers=HEADERS,
+        headers=_headers(),
         json={"message": approve},
     )
     r.raise_for_status()

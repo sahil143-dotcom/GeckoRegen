@@ -1,0 +1,8 @@
+.venv
+.cursor
+__pycache__
+*.pyc
+.env
+data/geckoregen.db
+data/snapshots
+agent-transcripts

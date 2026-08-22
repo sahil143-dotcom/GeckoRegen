@@ -6,6 +6,8 @@ never confused with a live Bright Data scrape.
 """
 from __future__ import annotations
 
+import json
+import os
 from datetime import datetime, timedelta
 
 import db
@@ -13,6 +15,8 @@ import memory
 import monitor
 
 FALLBACK_SNAPSHOT = "fallback:synthetic"
+FCA_RAW_SNAPSHOT = "live:fca_news_raw"
+_FCA_RAW_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "fca_news_raw.json")
 
 # Realistic titles — not hallucinated "news", labelled as fallback in snapshot_id.
 _FALLBACK: dict[str, list[dict]] = {
@@ -169,6 +173,38 @@ def seed_if_needed() -> None:
         )
 
     fca = by_name.get("FCA")
+    if fca and _count_changes(fca["id"]) == 0 and os.path.exists(_FCA_RAW_PATH):
+        with open(_FCA_RAW_PATH, encoding="utf-8") as fh:
+            raw_rows = json.load(fh)
+        with db.get_conn() as conn:
+            for rec in raw_rows:
+                pub = rec.get("publish_date") or ""
+                if isinstance(pub, str) and "T" in pub:
+                    pub = pub.split("T", 1)[0]
+                conn.execute(
+                    """INSERT INTO changes
+                       (regulator_id, title, category, publish_date, summary,
+                        article_url, severity, is_new, snapshot_id)
+                       VALUES (?,?,?,?,?,?,?,?,?)""",
+                    (
+                        fca["id"],
+                        rec.get("title"),
+                        rec.get("category"),
+                        pub,
+                        rec.get("summary"),
+                        rec.get("article_url") or rec.get("product_page_url"),
+                        "info",
+                        1,
+                        FCA_RAW_SNAPSHOT,
+                    ),
+                )
+        db.update_health(
+            fca["id"], "healthy",
+            field_population_rate=0.9411,
+            record_count=len(raw_rows),
+            missing_fields=[],
+        )
+
     if fca and _count_heals(fca["id"]) == 0:
         memory.record_heal(fca["id"], {
             "broken_fields": ["summary"],

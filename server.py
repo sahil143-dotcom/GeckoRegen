@@ -17,16 +17,23 @@ from typing import Any
 
 from flask import Flask, Response, jsonify, request, send_from_directory
 
+from dotenv import load_dotenv
+
 import db
 import memory
 import monitor
 import seed_demo
 
+load_dotenv()
+
 # ── paths ────────────────────────────────────────────────────────────
 
 _BASE = os.path.dirname(os.path.abspath(__file__))
 _WEB_DIR = os.path.join(_BASE, "web")
-_SANDBOX_DIR = os.path.join(_BASE, "sandbox")
+_SANDBOX_SRC = os.path.join(_BASE, "sandbox")
+_SANDBOX_DIR = os.environ.get("SANDBOX_DIR") or (
+    "/tmp/geckoregen-sandbox" if os.environ.get("VERCEL") else _SANDBOX_SRC
+)
 _SANDBOX_INDEX = os.path.join(_SANDBOX_DIR, "index.html")
 _SANDBOX_BROKEN = os.path.join(_SANDBOX_DIR, "broken-index.html")
 _SANDBOX_WORKING = os.path.join(_SANDBOX_DIR, "working-index.html")
@@ -39,6 +46,39 @@ _scan_in_flight: set[int] = set()
 # ── Flask app ────────────────────────────────────────────────────────
 
 app = Flask(__name__, static_folder=None)
+
+_booted = False
+
+
+def _prepare_writable_sandbox() -> None:
+    """Copy sandbox HTML to a writable dir on read-only hosts (Vercel)."""
+    global _SANDBOX_DIR, _SANDBOX_INDEX, _SANDBOX_BROKEN, _SANDBOX_WORKING
+    if _SANDBOX_DIR == _SANDBOX_SRC:
+        return
+    if not os.path.exists(os.path.join(_SANDBOX_DIR, "broken-index.html")):
+        if os.path.exists(_SANDBOX_DIR):
+            shutil.rmtree(_SANDBOX_DIR)
+        shutil.copytree(_SANDBOX_SRC, _SANDBOX_DIR)
+    _SANDBOX_INDEX = os.path.join(_SANDBOX_DIR, "index.html")
+    _SANDBOX_BROKEN = os.path.join(_SANDBOX_DIR, "broken-index.html")
+    _SANDBOX_WORKING = os.path.join(_SANDBOX_DIR, "working-index.html")
+
+
+def boot() -> None:
+    """Idempotent startup: writable paths, SQLite, config, demo seed."""
+    global _booted
+    if _booted:
+        return
+    _prepare_writable_sandbox()
+    db.init_db()
+    monitor.init_from_config()
+    seed_demo.seed_if_needed()
+    _booted = True
+
+
+@app.before_request
+def _boot_once():
+    boot()
 
 
 # ── in-process event bus (ponytail: global list of queues, no Redis) ──
@@ -166,6 +206,10 @@ def api_scan():
     regulators = {r["id"]: r for r in db.get_regulators()}
     if reg_id not in regulators:
         return jsonify({"error": f"regulator {reg_id} not found"}), 404
+    if not os.environ.get("BRIGHTDATA_API_KEY"):
+        return jsonify({
+            "error": "BRIGHTDATA_API_KEY is not set on this host — dashboard still works from seeded data",
+        }), 503
 
     reg = regulators[reg_id]
     now = time.time()
@@ -332,8 +376,9 @@ def _self_check() -> None:
 
 
 if __name__ == "__main__":
-    _self_check()
-    db.init_db()
-    monitor.init_from_config()
-    seed_demo.seed_if_needed()
-    app.run(host="0.0.0.0", port=8000, debug=True, threaded=True)
+    boot()
+    if not os.environ.get("VERCEL"):
+        _self_check()
+    port = int(os.environ.get("PORT", "8000"))
+    debug = os.environ.get("FLASK_DEBUG", "0") == "1"
+    app.run(host="0.0.0.0", port=port, debug=debug, threaded=True)

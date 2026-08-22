@@ -12,7 +12,11 @@ import os
 # ---------------------------------------------------------------------------
 
 _BASE = os.path.dirname(os.path.abspath(__file__))
-_SNAPSHOT_DIR = os.path.join(_BASE, "data", "snapshots")
+_SNAPSHOT_DIR = os.path.join(
+    os.environ.get("DATA_DIR")
+    or ("/tmp/geckoregen-data" if os.environ.get("VERCEL") else os.path.join(_BASE, "data")),
+    "snapshots",
+)
 
 # Fields whose breakage is always 'critical' regardless of other damage.
 CORE_FIELDS = frozenset({"title", "article_url", "publish_date", "summary"})

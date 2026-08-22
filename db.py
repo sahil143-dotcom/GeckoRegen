@@ -12,9 +12,22 @@ import sqlite3
 from contextlib import contextmanager
 from typing import Any, Iterator
 
-# ponytail: single project-relative path; no config knob needed yet
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(PROJECT_DIR, "data", "geckoregen.db")
+
+
+def _data_dir() -> str:
+    override = os.environ.get("DATA_DIR")
+    if override:
+        return override
+    # Vercel filesystem is read-only except /tmp
+    if os.environ.get("VERCEL"):
+        return "/tmp/geckoregen-data"
+    return os.path.join(PROJECT_DIR, "data")
+
+
+DATA_DIR = _data_dir()
+DB_PATH = os.environ.get("DATABASE_PATH") or os.path.join(DATA_DIR, "geckoregen.db")
+os.makedirs(DATA_DIR, exist_ok=True)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS regulators (
@@ -85,9 +98,10 @@ CREATE TABLE IF NOT EXISTS regulator_profiles (
 
 
 @contextmanager
-def get_conn(db_path: str = DB_PATH) -> Iterator[sqlite3.Connection]:
+def get_conn(db_path: str | None = None) -> Iterator[sqlite3.Connection]:
     """Yield a sqlite3 connection; commit on success, rollback on error."""
-    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    db_path = db_path or DB_PATH
+    os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
