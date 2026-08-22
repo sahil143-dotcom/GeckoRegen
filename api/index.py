@@ -1,7 +1,2 @@
-# api/index.py
-# Vercel serverless function entry point
-
+"""Vercel may look at api/; the real Flask app lives in server.py."""
 from server import app
-
-# Expose Flask app as 'handler' for Vercel
-handler = app
