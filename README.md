@@ -88,6 +88,18 @@ python server.py
 # Open http://localhost:8000
 ```
 
+### Public demo (judges)
+
+Import the GitHub repo — Vercel detects Flask (`server.py`).
+
+1. [Deploy on Vercel](https://vercel.com/new/import?s=https://github.com/sahil143-dotcom/GeckoRegen)
+2. Add env var `BRIGHTDATA_API_KEY` (same token as `.env`)
+3. Open the production URL, then `/guide`
+
+The dashboard seeds from `data/fca_news_raw.json` on first boot (751 FCA records). **Simulate Break** needs the API key. Live Bright Data jobs can take 3–12 minutes — if a host times out, use the seeded feed + pre-recorded FCA heal.
+
+For a process that stays up through a full heal: [Deploy on Render](https://render.com/deploy?repo=https://github.com/sahil143-dotcom/GeckoRegen) (`render.yaml`) and set the same env var.
+
 ---
 
 ## Demo guide
